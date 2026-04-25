@@ -1,0 +1,8 @@
+.DS_Store
+.build/
+.swiftpm/
+Package.resolved
+*.xcodeproj
+.env
+.env.local
+Tests/AppTests/.swiftpm/

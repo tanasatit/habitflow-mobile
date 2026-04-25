@@ -1,0 +1,24 @@
+{
+    "configurations": [
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:habitflow-mobile}/api",
+            "name": "Debug App (api)",
+            "target": "App",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug App (api)"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:habitflow-mobile}/api",
+            "name": "Release App (api)",
+            "target": "App",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release App (api)"
+        }
+    ]
+}
