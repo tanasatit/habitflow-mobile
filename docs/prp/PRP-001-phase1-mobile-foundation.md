@@ -2,8 +2,18 @@
 
 **Stack:** Swift 6 + SwiftUI (iOS 17+) · Vapor (Server-Side Swift) · PostgreSQL + SwiftData · Gemini API
 **Project type:** standalone greenfield — own repo, own DB, own `.env`, own JWT secret, own Gemini key. Zero shared infra with the legacy Go/Next.js HabitFlow app.
-**Window:** ~7 days, solo dev.
-**Delivery target:** TestFlight build.
+**Team:** duo. **Tai** (macOS) — iOS app. **Taro** (Windows) — Vapor backend.
+**Window:** ~7 days.
+**Delivery target:** runs end-to-end on the iOS Simulator. No deployment, no TestFlight — graded on the Simulator demo.
+
+**Grading rubric (drives all priorities):**
+- Functionality of application
+- Completeness
+- Work quality
+- Usefulness
+- Creativity
+- Level of difficulty
+- UX/UI
 
 ---
 
@@ -200,14 +210,15 @@ Each day ends with a working build.
 - Polish: haptics on check-off (`UIImpactFeedbackGenerator`), spring transitions, empty states, error banners, app icon, launch screen
 - **Deliverable:** admin can promote/demote users; UI polished
 
-### Day 7 — Tests, fixes, deploy
-- Backend: ~6 XCTVapor happy-path tests (auth, habits, dashboard)
+### Day 7 — Tests, polish, demo prep
+- Backend: ~6 XCTVapor happy-path tests (auth, habits, dashboard, calendar)
 - iOS: 2–3 view-model tests
-- Manual QA on device
-- Deploy backend (Fly.io / Railway) + managed Postgres
-- TestFlight upload
-- README with run instructions
-- **Deliverable:** shippable build + deployed API
+- Realistic demo seed data (a few habits with backdated logs to show streaks + flame)
+- Joint QA on Simulator across all 5 tabs + Admin
+- Bug bash; cut from drop-list if needed
+- README with run instructions for both `api/` and `ios/`
+- Demo script + screen recording of the golden path
+- **Deliverable:** clean run on iOS Simulator from cold start, demo recording in hand
 
 ### Drop-list (cut first if behind)
 1. SwiftData caching → fetch every time, show spinner
@@ -225,25 +236,48 @@ Each day ends with a working build.
 | Gemini function-calling format quirks | Day 5 starts with one hardcoded prompt; fall back to single-tool if multi-tool flaky |
 | Swift 6 strict concurrency noise | `@MainActor` VMs, `Sendable` DTOs, `nonisolated(unsafe)` on rare service singletons |
 | 7 days is tight | Drop-list above is non-load-bearing |
-| TestFlight provisioning delays | Start the Apple Dev portal app ID setup on Day 1 in parallel |
+| Demo backend must run on Tai's Mac | Code is portable Swift; Tai pulls Taro's `api/` branches and runs `swift run App serve` locally for the demo |
+| Windows ↔ macOS toolchain drift between Tai and Taro | Pin Swift toolchain version, share `Package.resolved`, CI smoke job optional |
 
 ---
 
 ## 7. Open Questions
 
-1. **Repo layout** — `habitflow-mobile/{api,ios}` siblings, or two separate repos? *(default: siblings)*
-2. **Apple Developer account** — confirmed active for TestFlight?
-3. **Gemini API key** — does a fresh key exist, or do we provision one Day 1?
-4. **Backend deploy target** — Fly.io vs Railway preference?
+1. **Repo layout** — `habitflow-mobile/{api,ios}` siblings *(decided: siblings, Day 1)*
+2. **Gemini API key** — does a fresh key exist, or do we provision one before Day 4?
+3. **Demo seed data** — what's the storyline for the recording? (e.g. "morning routine + workout schedule" with a 5-day backdated streak)
 
 ---
 
 ## 8. Phase 1 Definition of Done
 
-- [ ] `api/` and `ios/` scaffolded
-- [ ] Vapor server runs locally on port 8080, Postgres on 5433
-- [ ] User can register and log in via curl AND via the iOS app
-- [ ] JWT persists across app launches (Keychain)
-- [ ] Tab shell renders with 5 tabs
-- [ ] Today screen renders the streak ring with pulsing flame
-- [ ] CLAUDE.md reflects current state at end of each day
+**Functionality**
+- [ ] Register / login / logout / `/auth/me` work via curl AND from the iOS app
+- [ ] All 5 tabs render real data (Today, Habits, Calendar, Coach, Profile)
+- [ ] Habit CRUD + check-off + stats (current/longest streak, completion rate, 7-day grid)
+- [ ] Calendar event CRUD (month grid, day list, create/edit/delete, optional habit link)
+- [ ] AI Coach chat (premium) — Gemini function-calling writes calendar events
+- [ ] Admin view promotes/demotes users (admin role only)
+
+**Completeness**
+- [ ] Empty states, loading states, and error banners on every list/detail surface
+- [ ] Logout clears Keychain JWT and routes back to Login
+- [ ] No dead links, no half-built screens, no unhandled API errors
+
+**Work quality**
+- [ ] Vapor on `:8080`, Postgres on `:5433`, both reproducible from `docker compose up` + `swift run`
+- [ ] `swift build` and `swift test` clean, no warnings under Swift 6 strict
+- [ ] At least 6 backend happy-path tests + 2–3 iOS view-model tests
+- [ ] No `.env` / secrets in git
+
+**UX / UI / Creativity**
+- [ ] Tropical Punch theme applied consistently (colors, typography, spacing)
+- [ ] Streak ring with pulsing flame on Today + habit detail
+- [ ] Haptics on check-off, spring transitions, app icon, launch screen
+- [ ] Dark Mode looks intentional (not just defaults)
+- [ ] Dynamic Type respected on primary screens
+
+**Demo**
+- [ ] Cold start on iOS Simulator: launch sim → run backend → launch app → log in → tick a habit → see streak → use AI Coach → see calendar event appear → admin view as admin
+- [ ] Demo recording captured
+- [ ] `progress.md` reflects the actual current state at end of each day
