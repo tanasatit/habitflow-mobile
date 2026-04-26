@@ -48,6 +48,26 @@ curl -X POST http://127.0.0.1:8080/auth/register \
   -d '{"email":"you@example.com","password":"correct horse battery","name":"You"}'
 ```
 
+## Backend — running tests
+
+Postgres must be running (`docker compose up -d`). Each integration test class migrates and reverts its own schema, so the test DB is always clean.
+
+```bash
+cd api
+
+# All tests
+swift test
+
+# Unit tests only (no DB required — pure streak/stats logic)
+swift test --filter AppTests/HabitStatsServiceTests
+
+# Integration tests only (requires Postgres)
+swift test --filter AppTests/HabitControllerTests
+
+# Single test method
+swift test --filter AppTests/HabitControllerTests/testCreateHabit
+```
+
 ## Roadmap
 
 Seven-day plan in [PRP-001 §5](docs/prp/PRP-001-phase1-mobile-foundation.md). Day 1 (Vapor skeleton + Auth) is complete; Day 2 adds Habits + Dashboard.
