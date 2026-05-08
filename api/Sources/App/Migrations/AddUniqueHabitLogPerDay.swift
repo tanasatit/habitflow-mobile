@@ -9,7 +9,7 @@ struct AddUniqueHabitLogPerDay: AsyncMigration {
         let sql = database as! any SQLDatabase
         try await sql.raw("""
             CREATE UNIQUE INDEX habit_log_unique_per_day
-            ON habit_logs (habit_id, user_id, (completed_at::date))
+            ON habit_logs (habit_id, user_id, ((completed_at AT TIME ZONE 'UTC')::date))
             """).run()
     }
 
