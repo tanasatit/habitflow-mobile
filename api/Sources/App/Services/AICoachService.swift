@@ -19,7 +19,7 @@ struct AICoachService: Sendable {
             throw Abort(.badGateway, reason: "AI returned no response")
         }
 
-        if let functionCall = candidate.content.parts.first?.functionCall {
+        if let functionCall = candidate.content.parts.compactMap({ $0.functionCall }).first {
             let (funcResponse, calendarUpdated) = try await executeFunction(functionCall, userID: userID, req: req)
 
             contents.append(candidate.content)
@@ -63,17 +63,22 @@ struct AICoachService: Sendable {
             guard let eventArgs = call.args.events, !eventArgs.isEmpty else {
                 return (GeminiFunctionResponse(name: "write_calendar", response: ["result": "No events provided."]), false)
             }
-            let iso = ISO8601DateFormatter()
-            iso.formatOptions = [.withInternetDateTime]
-            var created = 0
-            for arg in eventArgs {
-                guard let start = iso.date(from: arg.startAt),
-                      let end = iso.date(from: arg.endAt),
-                      end > start else { continue }
-                let event = CalendarEvent(userID: userID, title: arg.title, notes: arg.notes, startAt: start, endAt: end)
+            // Parse all dates synchronously before any await — ISO8601DateFormatter is non-Sendable
+            // and cannot survive a suspension point under Swift 6 strict concurrency.
+            let events: [CalendarEvent] = {
+                var iso = ISO8601DateFormatter()
+                iso.formatOptions = [.withInternetDateTime]
+                return eventArgs.compactMap { arg in
+                    guard let start = iso.date(from: arg.startAt),
+                          let end = iso.date(from: arg.endAt),
+                          end > start else { return nil }
+                    return CalendarEvent(userID: userID, title: arg.title, notes: arg.notes, startAt: start, endAt: end)
+                }
+            }()
+            for event in events {
                 try await event.save(on: req.db)
-                created += 1
             }
+            let created = events.count
             let result = created == 0
                 ? "No valid events created."
                 : "Created \(created) calendar event\(created == 1 ? "" : "s")."
