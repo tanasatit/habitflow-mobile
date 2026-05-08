@@ -37,10 +37,14 @@ struct GeminiPart: Codable, Sendable {
     let functionResponse: GeminiFunctionResponse?
 
     init(text: String) {
-        self.text = text; self.functionCall = nil; self.functionResponse = nil
+        self.text = text
+        self.functionCall = nil
+        self.functionResponse = nil
     }
     init(functionResponse: GeminiFunctionResponse) {
-        self.text = nil; self.functionCall = nil; self.functionResponse = functionResponse
+        self.text = nil
+        self.functionCall = nil
+        self.functionResponse = functionResponse
     }
 
     private enum CodingKeys: String, CodingKey {

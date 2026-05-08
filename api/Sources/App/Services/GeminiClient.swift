@@ -16,7 +16,8 @@ struct GeminiClient: Sendable {
         }
 
         guard response.status == HTTPResponseStatus.ok else {
-            let reason = (try? response.content.decode([String: String].self))?["error"] ?? "\(response.status)"
+            struct GeminiErrorEnvelope: Decodable { struct E: Decodable { let message: String }; let error: E }
+            let reason = (try? response.content.decode(GeminiErrorEnvelope.self))?.error.message ?? "\(response.status)"
             throw Abort(.badGateway, reason: "Gemini error: \(reason)")
         }
 
