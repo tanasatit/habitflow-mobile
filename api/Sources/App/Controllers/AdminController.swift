@@ -71,16 +71,17 @@ struct AdminController: RouteCollection {
             ("Drink Water", "health")
         ]
 
+        var todayComps = utc.dateComponents([.year, .month, .day], from: Date())
+        todayComps.hour = 8; todayComps.minute = 0; todayComps.second = 0
+        todayComps.timeZone = TimeZone(identifier: "UTC")
+        let baseDate = utc.date(from: todayComps)!
+
         for (name, category) in habitDefs {
             let habit = Habit(userID: userID, name: name, category: category, frequency: "daily", targetTime: nil, description: nil)
             try await habit.save(on: req.db)
-            guard let habitID = habit.id else { continue }
+            guard let habitID = habit.id else { throw Abort(.internalServerError, reason: "habit ID missing after save") }
 
             for dayOffset in 0..<8 {
-                var comps = utc.dateComponents([.year, .month, .day], from: Date())
-                comps.hour = 8; comps.minute = 0; comps.second = 0
-                comps.timeZone = TimeZone(identifier: "UTC")
-                let baseDate = utc.date(from: comps)!
                 let logDate = utc.date(byAdding: .day, value: -dayOffset, to: baseDate)!
                 let log = HabitLog(habitID: habitID, userID: userID, completedAt: logDate)
                 try await log.save(on: req.db)
