@@ -34,6 +34,7 @@ public func configure(_ app: Application) async throws {
     app.migrations.add(CreateUser())
     app.migrations.add(CreateHabit())
     app.migrations.add(CreateHabitLog())
+    app.migrations.add(AddUniqueHabitLogPerDay())
     if app.environment != .testing {
         try await app.autoMigrate()
     }

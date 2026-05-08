@@ -50,6 +50,23 @@ final class HabitStatsServiceTests: XCTestCase {
         XCTAssertEqual(result.currentStreak, 1)
     }
 
+    func testCurrentStreakUTCMidnightBoundary() {
+        // Log at 23:30 UTC on day D; check streak at 00:30 UTC on day D+1.
+        // The log is "yesterday" UTC — streak should be preserved (anchor = yesterday).
+        // This guards against timezone-naive boundary comparisons cutting the streak early.
+        var comps = DateComponents()
+        comps.timeZone = TimeZone(identifier: "UTC")
+        comps.year = 2026; comps.month = 5; comps.day = 7
+        comps.hour = 23; comps.minute = 30; comps.second = 0
+        let logTime = utc.date(from: comps)!
+
+        comps.day = 8; comps.hour = 0; comps.minute = 30
+        let checkTime = utc.date(from: comps)!
+
+        let result = HabitStatsService.stats(logDates: [logTime], today: checkTime)
+        XCTAssertEqual(result.currentStreak, 1)
+    }
+
     func testCurrentStreakDuplicateLogsCountOnce() {
         // Multiple logs on the same day should count as one day.
         let result = HabitStatsService.stats(

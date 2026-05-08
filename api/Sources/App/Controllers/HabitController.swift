@@ -110,14 +110,24 @@ struct HabitController: RouteCollection {
         guard let habitID = habit.id else { throw Abort(.internalServerError) }
 
         let body = try? req.content.decode(LogHabitRequest.self)
-        let log = HabitLog(
-            habitID: habitID,
-            userID: userID,
-            completedAt: body?.completedAt ?? Date(),
-            notes: body?.notes
-        )
-        try await log.save(on: req.db)
+        let logDate = body?.completedAt ?? Date()
 
+        // All day boundaries use UTC so they stay consistent with the unique index
+        // (completed_at::date) and the streak-calculation calendar in HabitStatsService.
+        let (dayStart, dayEnd) = utcDayBounds(for: logDate)
+
+        let existing = try await HabitLog.query(on: req.db)
+            .filter(\.$habit.$id == habitID)
+            .filter(\.$user.$id == userID)
+            .filter(\.$completedAt >= dayStart)
+            .filter(\.$completedAt < dayEnd)
+            .first()
+        guard existing == nil else {
+            throw Abort(.conflict, reason: "already logged for this day")
+        }
+
+        let log = HabitLog(habitID: habitID, userID: userID, completedAt: logDate, notes: body?.notes)
+        try await log.save(on: req.db)
         return try await HabitLogResponse(log).encodeResponse(status: .created, for: req)
     }
 
@@ -130,10 +140,8 @@ struct HabitController: RouteCollection {
         let habit = try await findHabitOrAbort(req: req, userID: userID)
         guard let habitID = habit.id else { throw Abort(.internalServerError) }
 
-        var utc = Calendar(identifier: .gregorian)
-        utc.timeZone = TimeZone(identifier: "UTC")!
-        let todayStart = utc.startOfDay(for: Date())
-        let tomorrowStart = utc.date(byAdding: .day, value: 1, to: todayStart)!
+        // UTC boundaries — must match the unique index semantics.
+        let (todayStart, tomorrowStart) = utcDayBounds()
 
         guard let log = try await HabitLog.query(on: req.db)
             .filter(\.$habit.$id == habitID)
@@ -175,6 +183,13 @@ struct HabitController: RouteCollection {
     }
 
     // MARK: - Private
+
+    private func utcDayBounds(for date: Date = Date()) -> (start: Date, end: Date) {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "UTC")!
+        let start = cal.startOfDay(for: date)
+        return (start, cal.date(byAdding: .day, value: 1, to: start)!)
+    }
 
     private func findHabitOrAbort(req: Request, userID: UUID) async throws -> Habit {
         guard let habitID = req.parameters.get("habitID", as: UUID.self) else {

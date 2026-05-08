@@ -25,6 +25,10 @@ struct HabitStatsService: Sendable {
 
     // Counts consecutive days ending today (if today is logged) or yesterday
     // (if today not yet logged but yesterday was — preserves streak before user logs).
+    //
+    // All dates are bucketed in UTC, matching completed_at storage and the unique index.
+    // Clients in non-UTC timezones should treat the UTC date boundary as the day boundary
+    // for streak purposes — a log at 11 PM UTC-8 is stored as the next UTC day.
     static func currentStreak(days: Set<DateComponents>, today: Date) -> Int {
         let todayComps = dayComponents(today)
         let yesterdayComps = dayComponents(offset: -1, from: today)

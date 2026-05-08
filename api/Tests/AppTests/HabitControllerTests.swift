@@ -215,6 +215,53 @@ final class HabitControllerTests: XCTestCase {
         )
     }
 
+    func testUpdateForbiddenForOtherUser() async throws {
+        let token1 = try await register(email: "owner@test.com", name: "Owner")
+        let token2 = try await register(email: "other@test.com", name: "Other")
+        let habit = try await makeHabit(token: token1)
+
+        try await app.test(
+            .PUT, "habits/\(habit.id)",
+            headers: bearer(token2),
+            beforeRequest: { req in
+                try req.content.encode(UpdateHabitRequest(
+                    name: "Hijack", category: nil, targetTime: nil, description: nil, isActive: nil
+                ))
+            },
+            afterResponse: { res async throws in
+                XCTAssertEqual(res.status, .forbidden)
+            }
+        )
+    }
+
+    func testLogForbiddenForOtherUser() async throws {
+        let token1 = try await register(email: "owner@test.com", name: "Owner")
+        let token2 = try await register(email: "other@test.com", name: "Other")
+        let habit = try await makeHabit(token: token1)
+
+        try await app.test(
+            .POST, "habits/\(habit.id)/log",
+            headers: bearer(token2),
+            afterResponse: { res async throws in
+                XCTAssertEqual(res.status, .forbidden)
+            }
+        )
+    }
+
+    func testStatsForbiddenForOtherUser() async throws {
+        let token1 = try await register(email: "owner@test.com", name: "Owner")
+        let token2 = try await register(email: "other@test.com", name: "Other")
+        let habit = try await makeHabit(token: token1)
+
+        try await app.test(
+            .GET, "habits/\(habit.id)/stats",
+            headers: bearer(token2),
+            afterResponse: { res async throws in
+                XCTAssertEqual(res.status, .forbidden)
+            }
+        )
+    }
+
     // MARK: - Logging
 
     func testLogHabit() async throws {
@@ -228,6 +275,21 @@ final class HabitControllerTests: XCTestCase {
                 XCTAssertEqual(res.status, .created)
                 let body = try res.content.decode(HabitLogResponse.self)
                 XCTAssertEqual(body.habitID, habit.id)
+            }
+        )
+    }
+
+    func testDuplicateLogIsRejected() async throws {
+        let token = try await register()
+        let habit = try await makeHabit(token: token)
+        try await logHabit(id: habit.id, token: token)
+
+        // Second log on the same day must return 409.
+        try await app.test(
+            .POST, "habits/\(habit.id)/log",
+            headers: bearer(token),
+            afterResponse: { res async throws in
+                XCTAssertEqual(res.status, .conflict)
             }
         )
     }
