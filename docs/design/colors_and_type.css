@@ -1,0 +1,171 @@
+/* HabitFlow — Tropical Punch
+ * Design tokens lifted directly from frontend/src/app/globals.css
+ * https://github.com/tanasatit/HabitFlow (web) — visual source-of-truth for the iOS rewrite (habitflow-mobile)
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,700;0,800;1,400;1,700;1,800&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200');
+
+:root {
+  /* ─── Brand palette ─────────────────────────────────────── */
+  --color-primary:    #FF8243;   /* Tropical orange — CTAs, streaks, "selected" */
+  --color-secondary:  #FFC0CB;   /* Soft pink — accents, Google-source events */
+  --color-tertiary:   #069494;   /* Teal — completion, AI accents, success */
+  --color-accent:     #FCE883;   /* Warm yellow — AI Insight surfaces */
+
+  /* ─── Surfaces ─────────────────────────────────────────── */
+  --color-background:        #FFF9F5;  /* Warm cream — app background */
+  --color-surface:           #FFFFFF;  /* Cards, sheets */
+  --color-surface-variant:   #F4F1EF;  /* Disabled, hover, gutters */
+
+  /* ─── Text ─────────────────────────────────────────────── */
+  --color-on-background:      #302E2C;  /* Primary text — warm near-black */
+  --color-on-surface-variant: #5E5B58;  /* Secondary text */
+
+  /* ─── Structural ───────────────────────────────────────── */
+  --color-outline:    #E0DAD6;  /* Hairline borders, dividers */
+
+  /* ─── Category accents (used as bg/text 100/700 pairs) ─── */
+  --color-cat-health-bg:        #DCFCE7;
+  --color-cat-health-fg:        #15803D;
+  --color-cat-fitness-bg:       #FFEDD5;
+  --color-cat-fitness-fg:       #C2410C;
+  --color-cat-mindfulness-bg:   #F3E8FF;
+  --color-cat-mindfulness-fg:   #7E22CE;
+  --color-cat-productivity-bg:  #DBEAFE;
+  --color-cat-productivity-fg:  #1D4ED8;
+  --color-cat-learning-bg:      #FEF9C3;
+  --color-cat-learning-fg:      #A16207;
+  --color-cat-social-bg:        #FCE7F3;
+  --color-cat-social-fg:        #BE185D;
+
+  /* ─── Semantic state ───────────────────────────────────── */
+  --color-danger:        #EF4444;
+  --color-danger-bg:     #FEF2F2;
+  --color-danger-border: #FECACA;
+
+  /* ─── Type families ─────────────────────────────────────── */
+  --font-headline: 'Plus Jakarta Sans', -apple-system, system-ui, sans-serif;
+  --font-sans:     'Be Vietnam Pro', -apple-system, system-ui, sans-serif;
+  --font-icon:     'Material Symbols Outlined';
+
+  /* ─── Type scale (semantic) ─────────────────────────────── */
+  --text-display:  clamp(2.5rem, 4vw, 3rem);   /* 40–48px — "Your Oasis." page hero, italic ExtraBold */
+  --text-h1:       clamp(2rem, 3vw, 2.5rem);   /* 32–40px — "Welcome back, Tai!" */
+  --text-h2:       1.5rem;                     /* 24px — section heads */
+  --text-h3:       1.125rem;                   /* 18px — card titles */
+  --text-body:     0.875rem;                   /* 14px — default body */
+  --text-small:    0.75rem;                    /* 12px — meta, captions */
+  --text-tiny:     0.6875rem;                  /* 11px — calendar day chips */
+
+  --leading-tight:  1.15;
+  --leading-snug:   1.35;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.65;
+
+  /* ─── Radius (very rounded — friendly) ───────────────────── */
+  --radius-sm:   0.5rem;    /* 8px  — inputs */
+  --radius-md:   0.75rem;   /* 12px — small cards, icon squares */
+  --radius-lg:   1rem;      /* 16px — input pills */
+  --radius-xl:   1.25rem;   /* 20px — cards, sheets */
+  --radius-2xl:  1.5rem;    /* 24px — main app cards */
+  --radius-full: 9999px;    /* Pill buttons, nav items */
+
+  /* ─── Spacing (4px grid) ─────────────────────────────────── */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+
+  /* ─── Shadow / elevation (very soft) ─────────────────────── */
+  --shadow-sm:  0 1px 2px rgba(48, 46, 44, 0.04);
+  --shadow-md:  0 4px 12px rgba(48, 46, 44, 0.06);
+  --shadow-lg:  0 12px 32px rgba(48, 46, 44, 0.08);
+  --shadow-pop: 0 8px 24px rgba(255, 130, 67, 0.18); /* primary-tinted, for FABs */
+
+  /* ─── Motion ─────────────────────────────────────────────── */
+  --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast:    150ms;
+  --dur-base:    200ms;
+  --dur-slow:    400ms;
+  --dur-pulse:   2000ms; /* streak flame & breathing rings */
+}
+
+/* ─── Semantic element styling ─────────────────────────────── */
+body {
+  background: var(--color-background);
+  color: var(--color-on-background);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, .h1 {
+  font-family: var(--font-headline);
+  font-weight: 800;
+  font-size: var(--text-h1);
+  line-height: var(--leading-tight);
+  letter-spacing: -0.01em;
+}
+
+/* The signature page hero — "Your Oasis.", "AI Coach" */
+.h-hero, h1.italic {
+  font-family: var(--font-headline);
+  font-weight: 800;
+  font-style: italic;
+  font-size: var(--text-display);
+  line-height: var(--leading-tight);
+  letter-spacing: -0.015em;
+}
+
+h2, .h2 {
+  font-family: var(--font-headline);
+  font-weight: 700;
+  font-size: var(--text-h2);
+  line-height: var(--leading-snug);
+}
+
+h3, .h3 {
+  font-family: var(--font-headline);
+  font-weight: 700;
+  font-size: var(--text-h3);
+  line-height: var(--leading-snug);
+}
+
+p, .body {
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  line-height: var(--leading-relaxed);
+  color: var(--color-on-background);
+}
+
+.body-secondary, small {
+  font-size: var(--text-small);
+  color: var(--color-on-surface-variant);
+}
+
+/* "Send" button-style — uppercase + tight tracking */
+.label-strong {
+  font-family: var(--font-headline);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: var(--text-small);
+}
+
+/* Streak / hero numbers — extra-bold display weight */
+.numeric-display {
+  font-family: var(--font-headline);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
