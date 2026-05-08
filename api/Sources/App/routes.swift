@@ -10,4 +10,5 @@ func routes(_ app: Application) throws {
     try app.register(collection: DashboardController())
     try app.register(collection: CalendarEventController())
     try app.register(collection: AICoachController())
+    try app.register(collection: AdminController())
 }
