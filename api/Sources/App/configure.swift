@@ -32,8 +32,32 @@ public func configure(_ app: Application) async throws {
 
     // MARK: Migrations
     app.migrations.add(CreateUser())
+    app.migrations.add(CreateHabit())
+    app.migrations.add(CreateHabitLog())
+    app.migrations.add(AddUniqueHabitLogPerDay())
     if app.environment != .testing {
         try await app.autoMigrate()
+    }
+
+    // MARK: Admin Seed
+    if app.environment != .testing,
+       let adminEmail = Environment.get("ADMIN_EMAIL"),
+       let adminPassword = Environment.get("ADMIN_PASSWORD"),
+       let adminName = Environment.get("ADMIN_NAME") {
+        let existing = try await User.query(on: app.db)
+            .filter(\.$email == adminEmail.lowercased())
+            .first()
+        if existing == nil {
+            let hash = try Bcrypt.hash(adminPassword)
+            let admin = User(
+                email: adminEmail.lowercased(),
+                passwordHash: hash,
+                name: adminName,
+                role: .admin
+            )
+            try await admin.save(on: app.db)
+            app.logger.notice("Admin user seeded: \(adminEmail)")
+        }
     }
 
     // MARK: Routes
