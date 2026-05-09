@@ -77,7 +77,12 @@ struct Endpoint {
     }
 
     static func aiChat(message: String) -> Endpoint {
-        Endpoint(path: "/ai/chat", method: .POST, body: ["message": message], requiresAuth: true)
+        Endpoint(
+            path: "/ai/chat",
+            method: .POST,
+            body: ["message": message, "timezone": TimeZone.current.identifier],
+            requiresAuth: true
+        )
     }
 
     static var dashboard: Endpoint {

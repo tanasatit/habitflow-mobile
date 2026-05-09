@@ -30,6 +30,8 @@ struct AddEventSheet: View {
                     HFTextField(label: "Title", text: $title)
                         .listRowInsets(EdgeInsets())
                         .listRowBackground(Color.clear)
+                        .padding(.horizontal, HFSpacing.s5)
+                        .padding(.vertical, HFSpacing.s2)
                 }
 
                 Section {
@@ -45,6 +47,8 @@ struct AddEventSheet: View {
                     HFTextField(label: "Notes (optional)", text: $notes)
                         .listRowInsets(EdgeInsets())
                         .listRowBackground(Color.clear)
+                        .padding(.horizontal, HFSpacing.s5)
+                        .padding(.vertical, HFSpacing.s2)
                 }
 
                 if let error {
