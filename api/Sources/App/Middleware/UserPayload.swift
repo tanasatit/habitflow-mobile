@@ -6,6 +6,7 @@ struct UserPayload: JWTPayload, Authenticatable, Sendable {
     var email: String
     var role: UserRole
     var exp: ExpirationClaim
+    var jti: IDClaim
 
     func verify(using algorithm: some JWTAlgorithm) async throws {
         try self.exp.verifyNotExpired()
