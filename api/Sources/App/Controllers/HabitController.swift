@@ -144,18 +144,30 @@ struct HabitController: RouteCollection {
         let habit = try await findHabitOrAbort(req: req, userID: userID)
         guard let habitID = habit.id else { throw Abort(.internalServerError) }
 
-        // UTC boundaries — must match the unique index semantics.
-        let (todayStart, tomorrowStart) = utcDayBounds()
+        let targetDate: Date
+        if let dateStr = req.query[String.self, at: "date"] {
+            let fmt = DateFormatter()
+            fmt.dateFormat = "yyyy-MM-dd"
+            fmt.timeZone = TimeZone(identifier: "UTC")!
+            guard let parsed = fmt.date(from: dateStr) else {
+                throw Abort(.badRequest, reason: "invalid date — use yyyy-MM-dd format, e.g. 2026-05-07")
+            }
+            targetDate = parsed
+        } else {
+            targetDate = Date()
+        }
+
+        let (dayStart, tomorrowStart) = utcDayBounds(for: targetDate)
 
         guard let log = try await HabitLog.query(on: req.db)
             .filter(\.$habit.$id == habitID)
             .filter(\.$user.$id == userID)
-            .filter(\.$completedAt >= todayStart)
+            .filter(\.$completedAt >= dayStart)
             .filter(\.$completedAt < tomorrowStart)
             .sort(\.$completedAt, .descending)
             .first()
         else {
-            throw Abort(.notFound, reason: "no log found for today")
+            throw Abort(.notFound, reason: "no log found for that date")
         }
 
         try await log.delete(force: true, on: req.db)
