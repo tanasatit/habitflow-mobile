@@ -13,7 +13,12 @@ struct ChatResponse: Content, Sendable {
 
 // MARK: - Gemini wire types
 
+struct GeminiSystemInstruction: Encodable, Sendable {
+    let parts: [GeminiPart]
+}
+
 struct GeminiGenerateRequest: Encodable, Sendable {
+    let systemInstruction: GeminiSystemInstruction?
     let tools: [GeminiTool]
     var contents: [GeminiContent]
 }

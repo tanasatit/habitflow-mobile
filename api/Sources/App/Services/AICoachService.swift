@@ -12,7 +12,16 @@ struct AICoachService: Sendable {
         var contents: [GeminiContent] = [
             GeminiContent(role: "user", parts: [GeminiPart(text: message)])
         ]
-        let request = GeminiGenerateRequest(tools: [buildTools()], contents: contents)
+        let todayString: String = {
+            var f = ISO8601DateFormatter()
+            f.formatOptions = [.withFullDate]
+            f.timeZone = TimeZone(identifier: "UTC")
+            return f.string(from: Date())
+        }()
+        let systemInstruction = GeminiSystemInstruction(parts: [
+            GeminiPart(text: "Today's date is \(todayString) UTC. Use this when creating or referencing calendar events.")
+        ])
+        let request = GeminiGenerateRequest(systemInstruction: systemInstruction, tools: [buildTools()], contents: contents)
 
         let response1 = try await gemini.generateContent(request, on: req)
         guard let candidate = response1.candidates.first else {
