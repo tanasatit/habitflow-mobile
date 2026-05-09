@@ -168,7 +168,7 @@ struct HFPaywallCard: View {
                         .font(.hfH3)
                         .foregroundStyle(Color.hfOnBackground)
                 }
-                Text("Upgrade to Premium to unlock the AI Coach and unlimited rituals.")
+                Text("Upgrade to Premium to unlock the AI Coach and unlimited habits.")
                     .font(.hfBody)
                     .foregroundStyle(Color.hfOnSurfaceVariant)
                 HFPrimaryButton(title: "Upgrade to Premium") { }
