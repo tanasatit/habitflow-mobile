@@ -36,6 +36,7 @@ public func configure(_ app: Application) async throws {
     app.migrations.add(CreateHabitLog())
     app.migrations.add(AddUniqueHabitLogPerDay())
     app.migrations.add(CreateCalendarEvent())
+    app.migrations.add(AddRevokedTokens())
     if app.environment != .testing {
         try await app.autoMigrate()
     }
