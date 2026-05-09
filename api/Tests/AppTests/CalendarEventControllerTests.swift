@@ -56,6 +56,30 @@ final class CalendarEventControllerTests: XCTestCase {
         return try XCTUnwrap(event)
     }
 
+    func testCreateEventAcceptsISO8601DateStrings() async throws {
+        let token = try await register()
+        try await app.test(.POST, "calendar",
+            beforeRequest: { req in
+                req.headers.contentType = .json
+                req.body = ByteBuffer(string: """
+                {"title":"ISO Test","startAt":"2026-05-10T07:00:00Z","endAt":"2026-05-10T07:30:00Z"}
+                """)
+                req.headers.replaceOrAdd(name: .authorization, value: "Bearer \(token)")
+            },
+            afterResponse: { res async throws in
+                XCTAssertEqual(res.status, .created)
+                let event = try res.content.decode(CalendarEventResponse.self)
+                // Verify the date round-trips — encoder produces ISO 8601, not a Double
+                var cal = Calendar(identifier: .gregorian)
+                cal.timeZone = TimeZone(identifier: "UTC")!
+                let comps = cal.dateComponents([.year, .month, .day], from: event.startAt)
+                XCTAssertEqual(comps.year, 2026)
+                XCTAssertEqual(comps.month, 5)
+                XCTAssertEqual(comps.day, 10)
+            }
+        )
+    }
+
     // MARK: - Tests
 
     func testCreateEvent() async throws {
