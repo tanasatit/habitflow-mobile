@@ -54,6 +54,14 @@ struct Endpoint {
         Endpoint(path: "/habits/\(id)/log", method: .DELETE, body: nil, requiresAuth: true)
     }
 
+    static func habitStats(id: String) -> Endpoint {
+        Endpoint(path: "/habits/\(id)/stats", method: .GET, body: nil, requiresAuth: true)
+    }
+
+    static func deleteHabit(id: String) -> Endpoint {
+        Endpoint(path: "/habits/\(id)", method: .DELETE, body: nil, requiresAuth: true)
+    }
+
     static var dashboard: Endpoint {
         Endpoint(path: "/dashboard", method: .GET, body: nil, requiresAuth: true)
     }

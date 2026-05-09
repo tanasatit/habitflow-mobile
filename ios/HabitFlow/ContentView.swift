@@ -22,7 +22,7 @@ struct MainTabView: View {
         TabView {
             TodayView()
                 .tabItem { Label("Today",    systemImage: "square.grid.2x2") }
-            Text("Habits")
+            HabitsView()
                 .tabItem { Label("Habits",   systemImage: "checklist") }
             Text("Flow")
                 .tabItem { Label("Flow",     systemImage: "sparkles") }

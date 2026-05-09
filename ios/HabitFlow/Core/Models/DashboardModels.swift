@@ -41,3 +41,11 @@ struct HabitLogResponse: Decodable, Sendable {
     let userID: String
     let completedAt: Date
 }
+
+struct HabitStats: Decodable, Sendable {
+    let habitID: String
+    let currentStreak: Int
+    let longestStreak: Int
+    let completionRate: Double
+    let weekGrid: [Bool]
+}
