@@ -8,46 +8,49 @@ struct AICoachService: Sendable {
         self.gemini = gemini
     }
 
-    func chat(message: String, userID: UUID, req: Request) async throws -> (reply: String, calendarUpdated: Bool) {
-        var contents: [GeminiContent] = [
+    func chat(
+        message: String,
+        userID: UUID,
+        req: Request
+    ) async throws -> (reply: String, calendarUpdated: Bool, createdEvents: [CalendarEvent]) {
+        let contents: [GeminiContent] = [
             GeminiContent(role: "user", parts: [GeminiPart(text: message)])
         ]
-        let todayString: String = {
-            var f = ISO8601DateFormatter()
-            f.formatOptions = [.withFullDate]
-            f.timeZone = TimeZone(identifier: "UTC")
-            return f.string(from: Date())
-        }()
         let systemInstruction = GeminiSystemInstruction(parts: [
-            GeminiPart(text: "Today's date is \(todayString) UTC. Use this when creating or referencing calendar events.")
+            GeminiPart(text: buildSystemPrompt())
         ])
         let request = GeminiGenerateRequest(systemInstruction: systemInstruction, tools: [buildTools()], contents: contents)
 
-        let response1 = try await gemini.generateContent(request, on: req)
-        guard let candidate = response1.candidates.first else {
-            throw Abort(.badGateway, reason: "AI returned no response")
-        }
+        var calendarUpdated = false
+        var allCreatedEvents: [CalendarEvent] = []
+        var currentRequest = request
 
-        if let functionCall = candidate.content.parts.compactMap({ $0.functionCall }).first {
-            let (funcResponse, calendarUpdated) = try await executeFunction(functionCall, userID: userID, req: req)
-
-            contents.append(candidate.content)
-            contents.append(GeminiContent(role: "user", parts: [GeminiPart(functionResponse: funcResponse)]))
-
-            var request2 = request
-            request2.contents = contents
-            let response2 = try await gemini.generateContent(request2, on: req)
-
-            guard let text = response2.candidates.first?.content.parts.first?.text else {
-                throw Abort(.badGateway, reason: "AI returned no final response")
+        for _ in 0..<5 {
+            let response = try await gemini.generateContent(currentRequest, on: req)
+            guard let candidate = response.candidates.first else {
+                throw Abort(.badGateway, reason: "AI returned no response")
             }
-            return (reply: text, calendarUpdated: calendarUpdated)
+
+            guard let functionCall = candidate.content.parts.compactMap({ $0.functionCall }).first else {
+                guard let text = candidate.content.parts.first?.text else {
+                    throw Abort(.badGateway, reason: "AI returned no response")
+                }
+                return (reply: text, calendarUpdated: calendarUpdated, createdEvents: allCreatedEvents)
+            }
+
+            let (funcResponse, didUpdateCalendar, newEvents) = try await executeFunction(functionCall, userID: userID, req: req)
+            if didUpdateCalendar {
+                calendarUpdated = true
+                allCreatedEvents.append(contentsOf: newEvents)
+            }
+
+            var updatedContents = currentRequest.contents
+            updatedContents.append(candidate.content)
+            updatedContents.append(GeminiContent(role: "user", parts: [GeminiPart(functionResponse: funcResponse)]))
+            currentRequest.contents = updatedContents
         }
 
-        guard let text = candidate.content.parts.first?.text else {
-            throw Abort(.badGateway, reason: "AI returned no response")
-        }
-        return (reply: text, calendarUpdated: false)
+        throw Abort(.badGateway, reason: "AI exceeded maximum tool call iterations")
     }
 
     // MARK: - Function execution
@@ -56,7 +59,7 @@ struct AICoachService: Sendable {
         _ call: GeminiFunctionCall,
         userID: UUID,
         req: Request
-    ) async throws -> (GeminiFunctionResponse, Bool) {
+    ) async throws -> (GeminiFunctionResponse, Bool, [CalendarEvent]) {
         switch call.name {
         case "get_user_habits":
             let habits = try await Habit.query(on: req.db)
@@ -66,16 +69,14 @@ struct AICoachService: Sendable {
             let summary = habits.isEmpty
                 ? "No active habits found."
                 : habits.map { "\($0.name) (\($0.category ?? "general"), \($0.frequency))" }.joined(separator: "; ")
-            return (GeminiFunctionResponse(name: "get_user_habits", response: ["result": summary]), false)
+            return (GeminiFunctionResponse(name: "get_user_habits", response: ["result": summary]), false, [])
 
         case "write_calendar":
             guard let eventArgs = call.args.events, !eventArgs.isEmpty else {
-                return (GeminiFunctionResponse(name: "write_calendar", response: ["result": "No events provided."]), false)
+                return (GeminiFunctionResponse(name: "write_calendar", response: ["result": "No events provided."]), false, [])
             }
-            // Parse all dates synchronously before any await — ISO8601DateFormatter is non-Sendable
-            // and cannot survive a suspension point under Swift 6 strict concurrency.
             let events: [CalendarEvent] = {
-                var iso = ISO8601DateFormatter()
+                let iso = ISO8601DateFormatter()
                 iso.formatOptions = [.withInternetDateTime]
                 return eventArgs.compactMap { arg in
                     guard let start = iso.date(from: arg.startAt),
@@ -91,11 +92,51 @@ struct AICoachService: Sendable {
             let result = created == 0
                 ? "No valid events created."
                 : "Created \(created) calendar event\(created == 1 ? "" : "s")."
-            return (GeminiFunctionResponse(name: "write_calendar", response: ["result": result]), created > 0)
+            return (GeminiFunctionResponse(name: "write_calendar", response: ["result": result]), created > 0, events)
 
         default:
-            return (GeminiFunctionResponse(name: call.name, response: ["result": "Unknown function."]), false)
+            return (GeminiFunctionResponse(name: call.name, response: ["result": "Unknown function."]), false, [])
         }
+    }
+
+    // MARK: - System prompt
+
+    private func buildSystemPrompt() -> String {
+        let todayFormatter: DateFormatter = {
+            let f = DateFormatter()
+            f.dateFormat = "yyyy-MM-dd (EEEE)"
+            f.timeZone = TimeZone(identifier: "UTC")!
+            return f
+        }()
+        let dateOnlyFormatter: DateFormatter = {
+            let f = DateFormatter()
+            f.dateFormat = "yyyy-MM-dd"
+            f.timeZone = TimeZone(identifier: "UTC")!
+            return f
+        }()
+        let weekdayFormatter: DateFormatter = {
+            let f = DateFormatter()
+            f.dateFormat = "EEEE"
+            f.timeZone = TimeZone(identifier: "UTC")!
+            return f
+        }()
+
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "UTC")!
+        let today = Date()
+        let todayStr = todayFormatter.string(from: today)
+
+        var anchors: [String] = []
+        for i in 1...14 {
+            let d = cal.date(byAdding: .day, value: i, to: today)!
+            anchors.append("\(weekdayFormatter.string(from: d))=\(dateOnlyFormatter.string(from: d))")
+        }
+
+        return """
+        Today is \(todayStr) UTC. Use this when creating or referencing calendar events.
+        Upcoming dates: \(anchors.joined(separator: ", ")).
+        Use ISO8601 UTC format for all event times, e.g. 2026-05-11T07:00:00Z.
+        """
     }
 
     // MARK: - Tool declarations
