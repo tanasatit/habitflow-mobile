@@ -11,6 +11,58 @@ Plan reference: [`prp/PRP-001-phase1-mobile-foundation.md`](prp/PRP-001-phase1-m
 
 ---
 
+## Day 2 — Habits + Dashboard API · 2026-04-26 · DONE
+
+**Owner:** Taro (`api/`)
+**Goal (PRP §5 Day 2):** Full habit + dashboard surface works via `curl`.
+
+### Built
+- `Habit` model + `CreateHabit` migration (user_id FK cascade, soft-delete, frequency/category/target_time/description)
+- `HabitLog` model + `CreateHabitLog` migration (habit_id + user_id FKs cascade, hard-delete)
+- `HabitStatsService` — pure Swift, injectable `today:` for testability; UTC date math throughout
+  - `currentStreak` — counts from today or yesterday (preserves streak before user logs at 9am)
+  - `longestStreak` — full all-time run via sorted DateComponents → noon-UTC anchor
+  - `completionRate` — sliding 30-day window
+  - `weekGrid` — 7-element Bool array, index 0 = 6 days ago, index 6 = today
+- `HabitController` — 8 endpoints:
+  - `GET /habits` — list user's habits (sorted by created_at)
+  - `POST /habits` — create; 400 on empty name
+  - `GET /habits/:id` — show; 403 if not owner
+  - `PUT /habits/:id` — partial update (any subset of name/category/targetTime/description/isActive)
+  - `DELETE /habits/:id` — soft delete; 403 if not owner
+  - `POST /habits/:id/log` — log completion; optional body `{completedAt, notes}`
+  - `DELETE /habits/:id/log` — unlog most-recent today log; 404 if none
+  - `GET /habits/:id/stats` — full stats response
+- `DashboardController` — `GET /dashboard`: single bulk log fetch (90-day window, no N+1), stats computed in Swift
+- Admin seed: on startup, if `ADMIN_EMAIL`/`ADMIN_PASSWORD`/`ADMIN_NAME` env vars set, creates admin user idempotently
+
+### Verified
+| Check | Result |
+|---|---|
+| `swift build` | clean, 0 warnings |
+| `swift test` | 1 / 1 passing |
+| `POST /habits` | 201, HabitResponse |
+| `GET /habits` | array, sorted by created_at |
+| `PUT /habits/:id` | partial update applied |
+| `DELETE /habits/:id` | 204, gone from list |
+| `POST /habits/:id/log` | 201, HabitLogResponse, completedAt ≈ now |
+| `GET /habits/:id/stats` | currentStreak=1, weekGrid[6]=true after log |
+| `DELETE /habits/:id/log` | 204, streak drops to 0, weekGrid[6]=false |
+| `GET /dashboard` | overallStreak=1, completedToday=1 for logged habit |
+| Ownership 403 | `{"error":true,"reason":"Not your habit"}` from other user's token |
+| Admin seed | `role: admin` on `/auth/me` with seeded credentials |
+
+### Decisions
+- **`completedAt` is `Date` not `date`-only:** avoids Fluent casting complexity; stats service normalises to calendar day in UTC.
+- **`DELETE /habits/:id/log` deletes most-recent today log:** matches iOS toggle semantics — no log ID needed from client.
+- **Dashboard: single bulk log query (90-day):** avoids N+1; 90 days covers any displayable streak.
+- **`HabitStatsService` has no Vapor imports:** pure Foundation struct, trivially unit-testable.
+
+### Contract frozen
+`/habits/*` and `/dashboard` shapes are stable for Tai to wire iOS.
+
+---
+
 ## Day 1 — Vapor skeleton + Auth · 2026-04-25 · DONE
 
 **Owner:** Tai bootstrapped; Taro inherits ownership of `api/` from Day 2.
