@@ -13,9 +13,16 @@ struct AICoachService: Sendable {
         userID: UUID,
         req: Request
     ) async throws -> (reply: String, calendarUpdated: Bool, createdEvents: [CalendarEvent]) {
-        let contents: [GeminiContent] = [
-            GeminiContent(role: "user", parts: [GeminiPart(text: message)])
-        ]
+        let conversation = try await loadConversation(userID: userID, db: req.db)
+
+        // Decode stored messages and build prior GeminiContent turns
+        let decoder = JSONDecoder()
+        let stored = (try? decoder.decode([StoredMessage].self, from: Data(conversation.messagesJSON.utf8))) ?? []
+        var contents: [GeminiContent] = stored.map {
+            GeminiContent(role: $0.role, parts: [GeminiPart(text: $0.text)])
+        }
+        contents.append(GeminiContent(role: "user", parts: [GeminiPart(text: message)]))
+
         let systemInstruction = GeminiSystemInstruction(parts: [
             GeminiPart(text: buildSystemPrompt())
         ])
@@ -35,6 +42,14 @@ struct AICoachService: Sendable {
                 guard let text = candidate.content.parts.first?.text else {
                     throw Abort(.badGateway, reason: "AI returned no response")
                 }
+                // Persist updated history (cap at 20 messages)
+                var updatedMessages = stored
+                updatedMessages.append(StoredMessage(role: "user", text: message))
+                updatedMessages.append(StoredMessage(role: "model", text: text))
+                let capped = Array(updatedMessages.suffix(20))
+                let encoder = JSONEncoder()
+                conversation.messagesJSON = (try? String(data: encoder.encode(capped), encoding: .utf8)) ?? "[]"
+                try await conversation.save(on: req.db)
                 return (reply: text, calendarUpdated: calendarUpdated, createdEvents: allCreatedEvents)
             }
 
@@ -97,6 +112,19 @@ struct AICoachService: Sendable {
         default:
             return (GeminiFunctionResponse(name: call.name, response: ["result": "Unknown function."]), false, [])
         }
+    }
+
+    // MARK: - Conversation history
+
+    private func loadConversation(userID: UUID, db: any Database) async throws -> AIConversation {
+        if let existing = try await AIConversation.query(on: db)
+            .filter(\.$user.$id == userID)
+            .first() {
+            return existing
+        }
+        let conv = AIConversation(userID: userID)
+        try await conv.save(on: db)
+        return conv
     }
 
     // MARK: - System prompt
