@@ -49,7 +49,7 @@ DELETE /calendar/:id         soft delete; 403 if not owner
 ### Components
 
 **`GeminiClient`** (`Services/GeminiClient.swift`)  
-- Thin async HTTP wrapper around `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent`
+- Thin async HTTP wrapper around `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`
 - Auth: `?key=GEMINI_API_KEY` query param (loaded from env; abort 500 if missing)
 - Sends and receives raw `GenerateContentRequest` / `GenerateContentResponse` Codable structs
 - No retry logic, no state
