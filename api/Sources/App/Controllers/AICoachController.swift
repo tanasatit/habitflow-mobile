@@ -24,7 +24,7 @@ struct AICoachController: RouteCollection {
 
         let service = AICoachService(gemini: GeminiClient(apiKey: apiKey))
         let (reply, calendarUpdated, createdEvents) = try await service.chat(
-            message: body.message, userID: userID, req: req
+            message: body.message, timezone: body.timezone, userID: userID, req: req
         )
 
         let events: [CreatedEventResponse]? = calendarUpdated && !createdEvents.isEmpty

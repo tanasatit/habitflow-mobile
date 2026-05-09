@@ -10,6 +10,7 @@ struct AICoachService: Sendable {
 
     func chat(
         message: String,
+        timezone: String?,
         userID: UUID,
         req: Request
     ) async throws -> (reply: String, calendarUpdated: Bool, createdEvents: [CalendarEvent]) {
@@ -24,7 +25,7 @@ struct AICoachService: Sendable {
         contents.append(GeminiContent(role: "user", parts: [GeminiPart(text: message)]))
 
         let systemInstruction = GeminiSystemInstruction(parts: [
-            GeminiPart(text: buildSystemPrompt())
+            GeminiPart(text: buildSystemPrompt(timezone: timezone))
         ])
         let request = GeminiGenerateRequest(systemInstruction: systemInstruction, tools: [buildTools()], contents: contents)
 
@@ -129,28 +130,31 @@ struct AICoachService: Sendable {
 
     // MARK: - System prompt
 
-    private func buildSystemPrompt() -> String {
+    private func buildSystemPrompt(timezone: String?) -> String {
+        let tz = timezone.flatMap { TimeZone(identifier: $0) } ?? TimeZone(identifier: "UTC")!
+        let tzLabel = tz.identifier
+
         let todayFormatter: DateFormatter = {
             let f = DateFormatter()
             f.dateFormat = "yyyy-MM-dd (EEEE)"
-            f.timeZone = TimeZone(identifier: "UTC")!
+            f.timeZone = tz
             return f
         }()
         let dateOnlyFormatter: DateFormatter = {
             let f = DateFormatter()
             f.dateFormat = "yyyy-MM-dd"
-            f.timeZone = TimeZone(identifier: "UTC")!
+            f.timeZone = tz
             return f
         }()
         let weekdayFormatter: DateFormatter = {
             let f = DateFormatter()
             f.dateFormat = "EEEE"
-            f.timeZone = TimeZone(identifier: "UTC")!
+            f.timeZone = tz
             return f
         }()
 
         var cal = Calendar(identifier: .gregorian)
-        cal.timeZone = TimeZone(identifier: "UTC")!
+        cal.timeZone = tz
         let today = Date()
         let todayStr = todayFormatter.string(from: today)
 
@@ -161,9 +165,9 @@ struct AICoachService: Sendable {
         }
 
         return """
-        Today is \(todayStr) UTC. Use this when creating or referencing calendar events.
+        The user's timezone is \(tzLabel). Today is \(todayStr) \(tzLabel). Use this when creating or referencing calendar events.
         Upcoming dates: \(anchors.joined(separator: ", ")).
-        Use ISO8601 UTC format for all event times, e.g. 2026-05-11T07:00:00Z.
+        Use ISO8601 UTC format for all event times (convert from \(tzLabel) to UTC), e.g. if the user says 7am in \(tzLabel), store the UTC equivalent.
         """
     }
 

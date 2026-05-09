@@ -4,6 +4,7 @@ import Vapor
 
 struct ChatRequest: Content, Sendable {
     let message: String
+    let timezone: String?
 }
 
 struct CreatedEventResponse: Content, Sendable {

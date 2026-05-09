@@ -11,6 +11,7 @@ struct HabitController: RouteCollection {
         protected.post(use: create)
         protected.get(":habitID", use: show)
         protected.put(":habitID", use: update)
+        protected.patch(":habitID", use: update)
         protected.delete(":habitID", use: delete)
         protected.post(":habitID", "log", use: logHabit)
         protected.delete(":habitID", "log", use: unlogHabit)
