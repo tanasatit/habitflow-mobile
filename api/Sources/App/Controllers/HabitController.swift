@@ -43,11 +43,12 @@ struct HabitController: RouteCollection {
             throw Abort(.badRequest, reason: "name is required")
         }
 
+        let frequency = try validatedFrequency(body.frequency ?? "daily")
         let habit = Habit(
             userID: userID,
             name: name,
             category: body.category,
-            frequency: body.frequency ?? "daily",
+            frequency: frequency,
             targetTime: body.targetTime,
             description: body.description
         )
@@ -84,6 +85,9 @@ struct HabitController: RouteCollection {
         if let targetTime = body.targetTime { habit.targetTime = targetTime }
         if let description = body.description { habit.description = description }
         if let isActive = body.isActive { habit.isActive = isActive }
+        if let frequency = body.frequency {
+            habit.frequency = try validatedFrequency(frequency)
+        }
 
         try await habit.update(on: req.db)
         return try HabitResponse(habit)
@@ -183,6 +187,14 @@ struct HabitController: RouteCollection {
     }
 
     // MARK: - Private
+
+    private func validatedFrequency(_ raw: String) throws -> String {
+        guard HabitFrequency(rawValue: raw) != nil else {
+            let valid = HabitFrequency.allCases.map(\.rawValue).joined(separator: ", ")
+            throw Abort(.badRequest, reason: "invalid frequency — valid values: \(valid)")
+        }
+        return raw
+    }
 
     private func utcDayBounds(for date: Date = Date()) -> (start: Date, end: Date) {
         var cal = Calendar(identifier: .gregorian)

@@ -401,6 +401,41 @@ final class HabitControllerTests: XCTestCase {
         )
     }
 
+    // MARK: - Frequency validation
+
+    func testCreateHabitRejectsInvalidFrequency() async throws {
+        let token = try await register()
+        try await app.test(.POST, "habits",
+            headers: bearer(token),
+            beforeRequest: { req in
+                try req.content.encode(CreateHabitRequest(
+                    name: "Test", category: nil, frequency: "sometimes",
+                    targetTime: nil, description: nil
+                ))
+            },
+            afterResponse: { res async throws in
+                XCTAssertEqual(res.status, .badRequest)
+            }
+        )
+    }
+
+    func testUpdateHabitRejectsInvalidFrequency() async throws {
+        let token = try await register()
+        let habit = try await makeHabit(token: token)
+        try await app.test(.PUT, "habits/\(habit.id)",
+            headers: bearer(token),
+            beforeRequest: { req in
+                try req.content.encode(UpdateHabitRequest(
+                    name: nil, category: nil, targetTime: nil,
+                    description: nil, isActive: nil, frequency: "never"
+                ))
+            },
+            afterResponse: { res async throws in
+                XCTAssertEqual(res.status, .badRequest)
+            }
+        )
+    }
+
     // MARK: - Auth guard
 
     func testEndpointsRequireToken() async throws {
