@@ -437,6 +437,34 @@ final class HabitControllerTests: XCTestCase {
         )
     }
 
+    // MARK: - Premium gating
+
+    func testFreeUserCanCreateUpToFiveHabits() async throws {
+        let token = try await register(email: "premium@test.com")
+        for i in 1...5 {
+            try await app.test(.POST, "habits",
+                headers: bearer(token),
+                beforeRequest: { req in
+                    try req.content.encode(CreateHabitRequest(
+                        name: "Habit \(i)", category: nil, frequency: "daily",
+                        targetTime: nil, description: nil
+                    ))
+                },
+                afterResponse: { res async throws in XCTAssertEqual(res.status, .created) }
+            )
+        }
+        try await app.test(.POST, "habits",
+            headers: bearer(token),
+            beforeRequest: { req in
+                try req.content.encode(CreateHabitRequest(
+                    name: "Habit 6", category: nil, frequency: "daily",
+                    targetTime: nil, description: nil
+                ))
+            },
+            afterResponse: { res async throws in XCTAssertEqual(res.status, .forbidden) }
+        )
+    }
+
     // MARK: - Frequency validation
 
     func testCreateHabitRejectsInvalidFrequency() async throws {

@@ -43,6 +43,16 @@ struct HabitController: RouteCollection {
             throw Abort(.badRequest, reason: "name is required")
         }
 
+        if payload.role == .free {
+            let activeCount = try await Habit.query(on: req.db)
+                .filter(\.$user.$id == userID)
+                .filter(\.$isActive == true)
+                .count()
+            guard activeCount < 5 else {
+                throw Abort(.forbidden, reason: "Upgrade to premium to create more than 5 habits")
+            }
+        }
+
         let frequency = try validatedFrequency(body.frequency ?? "daily")
         let habit = Habit(
             userID: userID,
