@@ -213,4 +213,33 @@ final class CalendarEventControllerTests: XCTestCase {
             afterResponse: { res async throws in XCTAssertEqual(res.status, .unauthorized) }
         )
     }
+
+    // MARK: - Restore
+
+    func testRestoreDeletedEvent() async throws {
+        let token = try await register()
+        let event = try await makeEvent(token: token)
+
+        try await app.test(.DELETE, "calendar/\(event.id)", headers: bearer(token),
+            afterResponse: { res async throws in XCTAssertEqual(res.status, .noContent) }
+        )
+
+        try await app.test(.POST, "calendar/\(event.id)/restore", headers: bearer(token),
+            afterResponse: { res async throws in
+                XCTAssertEqual(res.status, .ok)
+                let restored = try res.content.decode(CalendarEventResponse.self)
+                XCTAssertEqual(restored.id, event.id)
+                XCTAssertEqual(restored.title, event.title)
+            }
+        )
+    }
+
+    func testRestoreReturns404ForNonDeletedEvent() async throws {
+        let token = try await register(email: "restore2@test.com")
+        let event = try await makeEvent(token: token)
+
+        try await app.test(.POST, "calendar/\(event.id)/restore", headers: bearer(token),
+            afterResponse: { res async throws in XCTAssertEqual(res.status, .notFound) }
+        )
+    }
 }

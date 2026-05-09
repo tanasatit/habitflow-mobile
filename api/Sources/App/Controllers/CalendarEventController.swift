@@ -11,6 +11,7 @@ struct CalendarEventController: RouteCollection {
         protected.post(use: create)
         protected.patch(":eventID", use: update)
         protected.delete(":eventID", use: delete)
+        protected.post(":eventID", "restore", use: restore)
     }
 
     // MARK: GET /calendar?start=&end=
@@ -110,6 +111,32 @@ struct CalendarEventController: RouteCollection {
         let event = try await findEventOrAbort(req: req, userID: userID)
         try await event.delete(on: req.db)
         return .noContent
+    }
+
+    // MARK: POST /calendar/:eventID/restore
+    @Sendable
+    func restore(req: Request) async throws -> CalendarEventResponse {
+        let payload = try req.auth.require(UserPayload.self)
+        guard let userID = payload.userID else { throw Abort(.unauthorized) }
+
+        guard let eventID = req.parameters.get("eventID", as: UUID.self) else {
+            throw Abort(.badRequest, reason: "invalid event ID")
+        }
+        guard let event = try await CalendarEvent.query(on: req.db)
+            .withDeleted()
+            .filter(\.$id == eventID)
+            .filter(\.$deletedAt != nil)
+            .first()
+        else {
+            throw Abort(.notFound)
+        }
+        guard event.$user.id == userID else {
+            throw Abort(.forbidden, reason: "Not your event")
+        }
+
+        event.deletedAt = nil
+        try await event.update(on: req.db)
+        return try CalendarEventResponse(event)
     }
 
     // MARK: - Private
