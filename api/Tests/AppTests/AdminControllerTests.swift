@@ -64,7 +64,7 @@ final class AdminControllerTests: XCTestCase {
         try await app.test(.GET, "admin/users", headers: bearer(adminToken),
             afterResponse: { res async throws in
                 XCTAssertEqual(res.status, .ok)
-                let users = try res.content.decode([AdminUserResponse].self)
+                let users = try res.content.decode(Page<AdminUserResponse>.self).items
                 XCTAssertEqual(users.count, 2)
             }
         )
@@ -112,7 +112,7 @@ final class AdminControllerTests: XCTestCase {
         try await app.test(.GET, "admin/users",
             headers: bearer(adminToken),
             afterResponse: { res async throws in
-                let users = try res.content.decode([AdminUserResponse].self)
+                let users = try res.content.decode(Page<AdminUserResponse>.self).items
                 XCTAssertFalse(users.contains(where: { $0.id == targetID }))
             }
         )

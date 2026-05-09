@@ -122,7 +122,7 @@ final class HabitControllerTests: XCTestCase {
             headers: bearer(token1),
             afterResponse: { res async throws in
                 XCTAssertEqual(res.status, .ok)
-                let habits = try res.content.decode([HabitResponse].self)
+                let habits = try res.content.decode(Page<HabitResponse>.self).items
                 XCTAssertEqual(habits.count, 2)
                 XCTAssertTrue(habits.allSatisfy { $0.name.hasPrefix("A") })
             }

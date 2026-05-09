@@ -19,16 +19,24 @@ struct HabitController: RouteCollection {
 
     // MARK: GET /habits
     @Sendable
-    func index(req: Request) async throws -> [HabitResponse] {
+    func index(req: Request) async throws -> Page<HabitResponse> {
         let payload = try req.auth.require(UserPayload.self)
         guard let userID = payload.userID else { throw Abort(.unauthorized) }
 
+        let paging = (try? req.query.decode(PageRequest.self)) ?? PageRequest()
+        let total = try await Habit.query(on: req.db)
+            .filter(\.$user.$id == userID)
+            .count()
         let habits = try await Habit.query(on: req.db)
             .filter(\.$user.$id == userID)
             .sort(\.$createdAt, .ascending)
+            .range(paging.offset..<(paging.offset + paging.clampedPer))
             .all()
 
-        return try habits.map { try HabitResponse($0) }
+        return Page(
+            items: try habits.map { try HabitResponse($0) },
+            metadata: PageMetadata(page: max(paging.page, 1), per: paging.clampedPer, total: total)
+        )
     }
 
     // MARK: POST /habits

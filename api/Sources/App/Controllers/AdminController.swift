@@ -15,11 +15,18 @@ struct AdminController: RouteCollection {
 
     // MARK: GET /admin/users
     @Sendable
-    func listUsers(req: Request) async throws -> [AdminUserResponse] {
+    func listUsers(req: Request) async throws -> Page<AdminUserResponse> {
+        let paging = (try? req.query.decode(PageRequest.self)) ?? PageRequest()
+        let total = try await User.query(on: req.db).count()
         let users = try await User.query(on: req.db)
             .sort(\.$createdAt, .ascending)
+            .range(paging.offset..<(paging.offset + paging.clampedPer))
             .all()
-        return try users.map { try AdminUserResponse($0) }
+
+        return Page(
+            items: try users.map { try AdminUserResponse($0) },
+            metadata: PageMetadata(page: max(paging.page, 1), per: paging.clampedPer, total: total)
+        )
     }
 
     // MARK: PATCH /admin/users/:userID/role

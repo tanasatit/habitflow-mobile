@@ -139,7 +139,7 @@ final class CalendarEventControllerTests: XCTestCase {
             headers: bearer(token),
             afterResponse: { res async throws in
                 XCTAssertEqual(res.status, .ok)
-                let events = try res.content.decode([CalendarEventResponse].self)
+                let events = try res.content.decode(Page<CalendarEventResponse>.self).items
                 XCTAssertEqual(events.count, 1)
             }
         )
