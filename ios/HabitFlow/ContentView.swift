@@ -28,7 +28,7 @@ struct MainTabView: View {
                 .tabItem { Label("Flow",     systemImage: "sparkles") }
             Text("Calendar")
                 .tabItem { Label("Calendar", systemImage: "calendar") }
-            Text("Profile")
+            ProfileView()
                 .tabItem { Label("Profile",  systemImage: "person") }
         }
         .tint(Color.hfPrimary)
