@@ -62,6 +62,20 @@ struct Endpoint {
         Endpoint(path: "/habits/\(id)", method: .DELETE, body: nil, requiresAuth: true)
     }
 
+    static func calendar(start: Date, end: Date) -> Endpoint {
+        let fmt = ISO8601DateFormatter()
+        let q = "?start=\(fmt.string(from: start))&end=\(fmt.string(from: end))"
+        return Endpoint(path: "/calendar\(q)", method: .GET, body: nil, requiresAuth: true)
+    }
+
+    static func createEvent(_ body: CreateEventRequest) -> Endpoint {
+        Endpoint(path: "/calendar", method: .POST, body: body, requiresAuth: true)
+    }
+
+    static func deleteEvent(id: String) -> Endpoint {
+        Endpoint(path: "/calendar/\(id)", method: .DELETE, body: nil, requiresAuth: true)
+    }
+
     static func aiChat(message: String) -> Endpoint {
         Endpoint(path: "/ai/chat", method: .POST, body: ["message": message], requiresAuth: true)
     }

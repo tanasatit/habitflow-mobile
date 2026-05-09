@@ -24,5 +24,4 @@ struct ScheduledEvent: Decodable, Sendable {
 struct AIResponse: Decodable, Sendable {
     let reply: String
     let calendarUpdated: Bool
-    let events: [ScheduledEvent]?
 }

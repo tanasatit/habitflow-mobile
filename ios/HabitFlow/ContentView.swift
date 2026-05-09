@@ -26,7 +26,7 @@ struct MainTabView: View {
                 .tabItem { Label("Habits",   systemImage: "checklist") }
             CoachView()
                 .tabItem { Label("Flow",     systemImage: "sparkles") }
-            Text("Calendar")
+            CalendarView()
                 .tabItem { Label("Calendar", systemImage: "calendar") }
             ProfileView()
                 .tabItem { Label("Profile",  systemImage: "person") }
