@@ -74,8 +74,8 @@ There is no in-app payment flow — an admin manually sets the role via the API.
 
 **Step 1 — promote yourself to admin in Postgres (one-time setup):**
 ```bash
-docker exec -it $(docker ps -q --filter name=postgres) \
-  psql -U vapor -d habitflow \
+docker exec -it habitflow_postgres \
+  psql -U habitflow -d habitflow \
   -c "UPDATE users SET role='admin' WHERE email='your@email.com';"
 ```
 
