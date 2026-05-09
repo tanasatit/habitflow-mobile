@@ -5,6 +5,7 @@ final class APIClient: Sendable {
     static let shared = APIClient()
     private let session: URLSession
     private let decoder: JSONDecoder
+    private let encoder: JSONEncoder
 
     private init() {
         let config = URLSessionConfiguration.default
@@ -13,6 +14,8 @@ final class APIClient: Sendable {
         decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         decoder.dateDecodingStrategy = .iso8601
+        encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
     }
 
     func send<T: Decodable>(_ endpoint: Endpoint, token: String? = nil) async throws -> T {
@@ -27,7 +30,7 @@ final class APIClient: Sendable {
         }
 
         if let body = endpoint.body {
-            request.httpBody = try JSONEncoder().encode(AnyEncodable(body))
+            request.httpBody = try encoder.encode(AnyEncodable(body))
         }
 
         let (data, response) = try await session.data(for: request)
@@ -62,7 +65,7 @@ final class APIClient: Sendable {
         request.httpMethod = endpoint.method.rawValue
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         if let token { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
-        if let body = endpoint.body { request.httpBody = try JSONEncoder().encode(AnyEncodable(body)) }
+        if let body = endpoint.body { request.httpBody = try encoder.encode(AnyEncodable(body)) }
 
         let (_, response) = try await session.data(for: request)
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
