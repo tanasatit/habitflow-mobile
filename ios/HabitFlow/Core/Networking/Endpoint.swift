@@ -62,6 +62,10 @@ struct Endpoint {
         Endpoint(path: "/habits/\(id)", method: .DELETE, body: nil, requiresAuth: true)
     }
 
+    static func aiChat(message: String) -> Endpoint {
+        Endpoint(path: "/ai/chat", method: .POST, body: ["message": message], requiresAuth: true)
+    }
+
     static var dashboard: Endpoint {
         Endpoint(path: "/dashboard", method: .GET, body: nil, requiresAuth: true)
     }

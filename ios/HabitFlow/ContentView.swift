@@ -24,7 +24,7 @@ struct MainTabView: View {
                 .tabItem { Label("Today",    systemImage: "square.grid.2x2") }
             HabitsView()
                 .tabItem { Label("Habits",   systemImage: "checklist") }
-            Text("Flow")
+            CoachView()
                 .tabItem { Label("Flow",     systemImage: "sparkles") }
             Text("Calendar")
                 .tabItem { Label("Calendar", systemImage: "calendar") }
