@@ -100,6 +100,33 @@ final class AdminControllerTests: XCTestCase {
         )
     }
 
+    func testDeleteUser() async throws {
+        let (adminToken, _) = try await register(email: "admin@test.com", name: "Admin", role: .admin)
+        let (_, targetID) = try await register(email: "target@test.com", name: "Target")
+
+        try await app.test(.DELETE, "admin/users/\(targetID)",
+            headers: bearer(adminToken),
+            afterResponse: { res async throws in XCTAssertEqual(res.status, .noContent) }
+        )
+
+        try await app.test(.GET, "admin/users",
+            headers: bearer(adminToken),
+            afterResponse: { res async throws in
+                let users = try res.content.decode([AdminUserResponse].self)
+                XCTAssertFalse(users.contains(where: { $0.id == targetID }))
+            }
+        )
+    }
+
+    func testDeleteUserCannotDeleteSelf() async throws {
+        let (adminToken, adminID) = try await register(email: "admin2@test.com", name: "Admin2", role: .admin)
+
+        try await app.test(.DELETE, "admin/users/\(adminID)",
+            headers: bearer(adminToken),
+            afterResponse: { res async throws in XCTAssertEqual(res.status, .badRequest) }
+        )
+    }
+
     func testSeedIsIdempotent() async throws {
         let (adminToken, _) = try await register(email: "admin@test.com", name: "Admin", role: .admin)
 

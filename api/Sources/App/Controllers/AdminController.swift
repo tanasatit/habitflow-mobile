@@ -10,6 +10,7 @@ struct AdminController: RouteCollection {
         admin.get("users", use: listUsers)
         admin.patch("users", ":userID", "role", use: updateRole)
         admin.post("seed", use: seed)
+        admin.delete("users", ":userID", use: deleteUser)
     }
 
     // MARK: GET /admin/users
@@ -95,6 +96,25 @@ struct AdminController: RouteCollection {
         }
 
         return SeedResponse(message: "Seed complete", userEmail: demoEmail, password: demoPassword)
+    }
+
+    // MARK: DELETE /admin/users/:userID
+    @Sendable
+    func deleteUser(req: Request) async throws -> HTTPStatus {
+        let payload = try req.auth.require(UserPayload.self)
+        guard let callerID = payload.userID else { throw Abort(.unauthorized) }
+
+        guard let userID = req.parameters.get("userID", as: UUID.self) else {
+            throw Abort(.badRequest, reason: "invalid user ID")
+        }
+        guard userID != callerID else {
+            throw Abort(.badRequest, reason: "cannot delete your own account")
+        }
+        guard let user = try await User.find(userID, on: req.db) else {
+            throw Abort(.notFound, reason: "user not found")
+        }
+        try await user.delete(on: req.db)
+        return .noContent
     }
 
     private func upcomingMWFDates(count: Int, after date: Date, calendar: Calendar) -> [Date] {
