@@ -25,6 +25,9 @@ final class CalendarEvent: Model, @unchecked Sendable {
     @Field(key: "all_day")
     var allDay: Bool
 
+    @OptionalField(key: "category")
+    var category: String?
+
     @Timestamp(key: "created_at", on: .create)
     var createdAt: Date?
 
@@ -43,7 +46,8 @@ final class CalendarEvent: Model, @unchecked Sendable {
         notes: String? = nil,
         startAt: Date,
         endAt: Date,
-        allDay: Bool = false
+        allDay: Bool = false,
+        category: String? = nil
     ) {
         self.id = id
         self.$user.id = userID
@@ -52,5 +56,6 @@ final class CalendarEvent: Model, @unchecked Sendable {
         self.startAt = startAt
         self.endAt = endAt
         self.allDay = allDay
+        self.category = category
     }
 }

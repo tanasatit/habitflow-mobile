@@ -6,6 +6,7 @@ struct CreateCalendarEventRequest: Content, Sendable {
     let startAt: Date
     let endAt: Date
     let allDay: Bool?
+    var category: String? = nil
 }
 
 struct UpdateCalendarEventRequest: Content, Sendable {
@@ -14,6 +15,7 @@ struct UpdateCalendarEventRequest: Content, Sendable {
     let startAt: Date?
     let endAt: Date?
     let allDay: Bool?
+    var category: String? = nil
 }
 
 struct CalendarEventResponse: Content, Sendable {
@@ -24,6 +26,7 @@ struct CalendarEventResponse: Content, Sendable {
     let startAt: Date
     let endAt: Date
     let allDay: Bool
+    let category: String?
     let createdAt: Date?
     let updatedAt: Date?
 
@@ -36,6 +39,7 @@ struct CalendarEventResponse: Content, Sendable {
         self.startAt = event.startAt
         self.endAt = event.endAt
         self.allDay = event.allDay
+        self.category = event.category
         self.createdAt = event.createdAt
         self.updatedAt = event.updatedAt
     }

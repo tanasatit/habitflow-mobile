@@ -82,9 +82,25 @@ struct AICoachService: Sendable {
                 .filter(\.$user.$id == userID)
                 .filter(\.$isActive == true)
                 .all()
-            let summary = habits.isEmpty
-                ? "No active habits found."
-                : habits.map { "\($0.name) (\($0.category ?? "general"), \($0.frequency))" }.joined(separator: "; ")
+            if habits.isEmpty {
+                return (GeminiFunctionResponse(name: "get_user_habits", response: ["result": "No active habits found."]), false, [])
+            }
+            var cal = Calendar(identifier: .gregorian)
+            cal.timeZone = TimeZone(identifier: "UTC")!
+            let todayStart = cal.startOfDay(for: Date())
+            let tomorrowStart = cal.date(byAdding: .day, value: 1, to: todayStart)!
+            let todayLogs = try await HabitLog.query(on: req.db)
+                .filter(\.$user.$id == userID)
+                .filter(\.$completedAt >= todayStart)
+                .filter(\.$completedAt < tomorrowStart)
+                .all()
+            let completedIDs = Set(todayLogs.map { $0.$habit.id })
+            let summary = habits.map { h -> String in
+                let done = h.id.map { completedIDs.contains($0) } ?? false
+                let cat = h.category ?? "general"
+                let status = done ? "done" : "not done"
+                return h.name + " (" + cat + ", " + h.frequency + ", today: " + status + ")"
+            }.joined(separator: "; ")
             return (GeminiFunctionResponse(name: "get_user_habits", response: ["result": summary]), false, [])
 
         case "write_calendar":
@@ -98,7 +114,7 @@ struct AICoachService: Sendable {
                     guard let start = iso.date(from: arg.startAt),
                           let end = iso.date(from: arg.endAt),
                           end > start else { return nil }
-                    return CalendarEvent(userID: userID, title: arg.title, notes: arg.notes, startAt: start, endAt: end)
+                    return CalendarEvent(userID: userID, title: arg.title, notes: arg.notes, startAt: start, endAt: end, category: arg.category)
                 }
             }()
             for event in events {
@@ -109,6 +125,27 @@ struct AICoachService: Sendable {
                 ? "No valid events created."
                 : "Created \(created) calendar event\(created == 1 ? "" : "s")."
             return (GeminiFunctionResponse(name: "write_calendar", response: ["result": result]), created > 0, events)
+
+        case "get_calendar_events":
+            let iso = ISO8601DateFormatter()
+            iso.formatOptions = [.withInternetDateTime]
+            guard let startStr = call.args.start, let endStr = call.args.end,
+                  let start = iso.date(from: startStr), let end = iso.date(from: endStr) else {
+                return (GeminiFunctionResponse(name: "get_calendar_events", response: ["result": "Invalid or missing date range."]), false, [])
+            }
+            let events = try await CalendarEvent.query(on: req.db)
+                .filter(\.$user.$id == userID)
+                .filter(\.$startAt >= start)
+                .filter(\.$startAt < end)
+                .sort(\.$startAt, .ascending)
+                .all()
+            let eventSummary = events.isEmpty
+                ? "No calendar events in this range."
+                : events.map { e -> String in
+                    let cat = e.category.map { " [" + $0 + "]" } ?? ""
+                    return e.title + " at " + iso.string(from: e.startAt) + cat
+                }.joined(separator: "; ")
+            return (GeminiFunctionResponse(name: "get_calendar_events", response: ["result": eventSummary]), false, [])
 
         default:
             return (GeminiFunctionResponse(name: call.name, response: ["result": "Unknown function."]), false, [])
@@ -168,6 +205,7 @@ struct AICoachService: Sendable {
         The user's timezone is \(tzLabel). Today is \(todayStr) \(tzLabel). Use this when creating or referencing calendar events.
         Upcoming dates: \(anchors.joined(separator: ", ")).
         Use ISO8601 UTC format for all event times (convert from \(tzLabel) to UTC), e.g. if the user says 7am in \(tzLabel), store the UTC equivalent.
+        IMPORTANT: Always use Gregorian (CE) years in ISO 8601 date strings. Never use Buddhist Era (BE) years. The current Gregorian year is \(Calendar(identifier: .gregorian).component(.year, from: Date())).
         """
     }
 
@@ -177,12 +215,24 @@ struct AICoachService: Sendable {
         GeminiTool(functionDeclarations: [
             GeminiFunctionDeclaration(
                 name: "get_user_habits",
-                description: "Returns the user's active habits including name, category, and frequency.",
+                description: "Returns the user's active habits with name, category, frequency, and whether each was completed today.",
                 parameters: GeminiParameters(type: "OBJECT", properties: [:], required: [])
             ),
             GeminiFunctionDeclaration(
+                name: "get_calendar_events",
+                description: "Returns the user's calendar events within a date range. Use ISO8601 UTC for start and end.",
+                parameters: GeminiParameters(
+                    type: "OBJECT",
+                    properties: [
+                        "start": GeminiProperty(type: "STRING", description: "ISO8601 UTC range start, e.g. 2026-05-11T00:00:00Z"),
+                        "end":   GeminiProperty(type: "STRING", description: "ISO8601 UTC range end (exclusive), e.g. 2026-05-18T00:00:00Z")
+                    ],
+                    required: ["start", "end"]
+                )
+            ),
+            GeminiFunctionDeclaration(
                 name: "write_calendar",
-                description: "Creates calendar events for the user. Use ISO8601 UTC format for dates, e.g. 2026-05-11T07:00:00Z.",
+                description: "Creates calendar events for the user. Use ISO8601 UTC format for dates.",
                 parameters: GeminiParameters(
                     type: "OBJECT",
                     properties: [
@@ -192,10 +242,11 @@ struct AICoachService: Sendable {
                             items: GeminiItems(
                                 type: "OBJECT",
                                 properties: [
-                                    "title":   GeminiProperty(type: "STRING", description: "Event title"),
-                                    "startAt": GeminiProperty(type: "STRING", description: "ISO8601 start time"),
-                                    "endAt":   GeminiProperty(type: "STRING", description: "ISO8601 end time"),
-                                    "notes":   GeminiProperty(type: "STRING", description: "Optional notes")
+                                    "title":    GeminiProperty(type: "STRING", description: "Event title"),
+                                    "startAt":  GeminiProperty(type: "STRING", description: "ISO8601 UTC start time"),
+                                    "endAt":    GeminiProperty(type: "STRING", description: "ISO8601 UTC end time"),
+                                    "notes":    GeminiProperty(type: "STRING", description: "Optional notes"),
+                                    "category": GeminiProperty(type: "STRING", description: "Optional category, e.g. fitness, work, health")
                                 ],
                                 required: ["title", "startAt", "endAt"]
                             )

@@ -78,7 +78,8 @@ struct CalendarEventController: RouteCollection {
             notes: body.notes,
             startAt: body.startAt,
             endAt: body.endAt,
-            allDay: body.allDay ?? false
+            allDay: body.allDay ?? false,
+            category: body.category
         )
         try await event.save(on: req.db)
         return try await CalendarEventResponse(event).encodeResponse(status: .created, for: req)
@@ -102,6 +103,7 @@ struct CalendarEventController: RouteCollection {
         if let startAt = body.startAt { event.startAt = startAt }
         if let endAt = body.endAt { event.endAt = endAt }
         if let allDay = body.allDay { event.allDay = allDay }
+        if let category = body.category { event.category = category }
 
         guard event.endAt > event.startAt else {
             throw Abort(.badRequest, reason: "endAt must be after startAt")
