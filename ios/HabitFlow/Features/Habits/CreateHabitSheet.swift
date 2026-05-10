@@ -10,6 +10,7 @@ struct CreateHabitSheet: View {
     @State private var description = ""
     @State private var isLoading = false
     @State private var error: String?
+    @State private var showPaywall = false
 
     private let vm = HabitsViewModel()
 
@@ -51,6 +52,10 @@ struct CreateHabitSheet: View {
                     Button("Cancel") { dismiss() }
                         .foregroundStyle(Color.hfOnSurfaceVariant)
                 }
+            }
+            .sheet(isPresented: $showPaywall) {
+                HabitLimitPaywallSheet()
+                    .presentationDetents([.medium])
             }
         }
     }
@@ -96,6 +101,8 @@ struct CreateHabitSheet: View {
                 )
                 await onCreated()
                 dismiss()
+            } catch APIError.forbidden {
+                showPaywall = true
             } catch let e as APIError {
                 error = e.errorDescription
             } catch {

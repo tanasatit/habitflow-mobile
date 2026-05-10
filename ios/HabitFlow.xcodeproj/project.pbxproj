@@ -36,6 +36,7 @@
 		CD9A7A253A1A54BFD40E9D25 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = D447837C194F5E65ADBBFECA /* Models.swift */; };
 		D71E42416926A09B9F348EE9 /* Color+HabitFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BAED5024C80D0834E2F0AEC /* Color+HabitFlow.swift */; };
 		DF38BA9523F06EFDDF3C29D6 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E857959E0DF383F2CAD6C3BB /* Assets.xcassets */; };
+		E79EDB894FCF07171CBD6850 /* HabitLimitPaywallSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 172F6B3CF045CE6F1BBF94AA /* HabitLimitPaywallSheet.swift */; };
 		E96F3F43EA7FEFCE69D29BB9 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34696B5C66EC10DD3DC999D8 /* APIClient.swift */; };
 		EBFB61CD5D39FCEA03BBC5CC /* TodayViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B508F5182866105D524EC198 /* TodayViewModel.swift */; };
 		F6D8DD620CD7385FF0EC9B1D /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0ABB70074729E0B5E9CC8539 /* LoginView.swift */; };
@@ -47,6 +48,7 @@
 		061039E04CDE9DD67952271F /* HabitFlowApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HabitFlowApp.swift; sourceTree = "<group>"; };
 		0ABB70074729E0B5E9CC8539 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
 		104139CF2D04DC377372F445 /* AuthStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthStore.swift; sourceTree = "<group>"; };
+		172F6B3CF045CE6F1BBF94AA /* HabitLimitPaywallSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HabitLimitPaywallSheet.swift; sourceTree = "<group>"; };
 		19C0A8F890E2DD594C08CA6C /* HabitFlow.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = HabitFlow.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		21B6A23BFFF0224DFF5FFC5D /* Font+HabitFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Font+HabitFlow.swift"; sourceTree = "<group>"; };
 		26ED5D953D6A383764CDD1EA /* HabitRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HabitRowView.swift; sourceTree = "<group>"; };
@@ -198,6 +200,7 @@
 			children = (
 				7E48E06444EEC46A6AEAF56B /* CreateHabitSheet.swift */,
 				04BC08207F4CF86D0BCC0C1D /* EditHabitSheet.swift */,
+				172F6B3CF045CE6F1BBF94AA /* HabitLimitPaywallSheet.swift */,
 				9CC83D967BC55BB95B313D58 /* HabitsView.swift */,
 				7B3DE59476187F2BBFAD9877 /* HabitsViewModel.swift */,
 			);
@@ -334,6 +337,7 @@
 				78A2AF9B78B5B59800D2168F /* Font+HabitFlow.swift in Sources */,
 				44B4B44F871560D745A53D67 /* HFComponents.swift in Sources */,
 				46BD4C69BF08741D2DF8D534 /* HabitFlowApp.swift in Sources */,
+				E79EDB894FCF07171CBD6850 /* HabitLimitPaywallSheet.swift in Sources */,
 				24EC2487083B2F0512CB68F3 /* HabitRowView.swift in Sources */,
 				5D1FBF5B352F411943106495 /* HabitsView.swift in Sources */,
 				4DC41548B4E587B2BC2A21E4 /* HabitsViewModel.swift in Sources */,

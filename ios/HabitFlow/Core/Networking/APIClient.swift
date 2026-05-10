@@ -48,6 +48,9 @@ final class APIClient: Sendable {
             throw APIError.badRequest(msg)
         case 401:
             throw APIError.unauthorized
+        case 403:
+            let msg = (try? decoder.decode(VaporError.self, from: data))?.reason ?? "Access denied."
+            throw APIError.forbidden(msg)
         case 409:
             let msg = (try? decoder.decode(VaporError.self, from: data))?.reason ?? "Already exists."
             throw APIError.conflict(msg)
