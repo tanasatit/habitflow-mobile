@@ -2,7 +2,9 @@ import SwiftUI
 
 struct ProfileView: View {
     @Environment(AuthStore.self) private var auth
+    @AppStorage("appearanceMode") private var appearanceMode: String = "light"
     @State private var showLogoutConfirm = false
+    @State private var showAppearancePicker = false
     @State private var dashboard: DashboardResponse?
 
     private var user: User? { auth.user }
@@ -130,10 +132,19 @@ struct ProfileView: View {
             HFCard {
                 VStack(spacing: 0) {
                     SettingRow(icon: "bell",          label: "Notifications",   isLast: false)
-                    SettingRow(icon: "sun.max",        label: "Appearance",      value: "Light", isLast: false)
+                    Button { showAppearancePicker = true } label: {
+                        SettingRow(icon: "sun.max", label: "Appearance",
+                                   value: appearanceMode.capitalized, isLast: false)
+                    }
+                    .buttonStyle(.plain)
                     SettingRow(icon: "clock",          label: "Reminder time",   value: "9:00 PM", isLast: false)
                     SettingRow(icon: "questionmark.circle", label: "Help & feedback", isLast: true)
                 }
+            }
+            .confirmationDialog("Appearance", isPresented: $showAppearancePicker) {
+                Button("Light")  { appearanceMode = "light" }
+                Button("System") { appearanceMode = "system" }
+                Button("Cancel", role: .cancel) { }
             }
         }
     }

@@ -112,6 +112,7 @@ struct BentoCard: View {
 
     private var category: HabitCategory? { HabitCategory(rawValue: habit.category) }
     private var streak: Int { stats?.currentStreak ?? 0 }
+    private var longest: Int { stats?.longestStreak ?? 0 }
     private var pct: Int { min(100, Int((stats?.completionRate ?? 0) * 100)) }
 
     var body: some View {
@@ -158,15 +159,20 @@ struct BentoCard: View {
                     }
                 }
 
-                // Streak + completion %
+                // Streak row
                 HStack {
                     HStack(spacing: 3) {
                         Image(systemName: "flame.fill")
                             .font(.system(size: 10))
                             .foregroundStyle(Color.hfPrimary)
-                        Text("\(streak) day streak")
+                        Text("\(streak)")
                             .font(Font.system(size: 11, weight: .bold).monospacedDigit())
                             .foregroundStyle(Color.hfPrimary)
+                        if longest > streak {
+                            Text("/ \(longest) best")
+                                .font(.hfTiny)
+                                .foregroundStyle(Color.hfOnSurfaceVariant)
+                        }
                     }
                     Spacer()
                     Text("\(pct)%")

@@ -11,6 +11,93 @@ Plan reference: [`prp/PRP-001-phase1-mobile-foundation.md`](prp/PRP-001-phase1-m
 
 ---
 
+## Days 3–5 — Full iOS frontend + backend hardening · 2026-04-27 → 2026-05-11 · DONE
+
+**Owner:** Tai (`ios/`) · Taro (`api/` branch `api/calendar-ai-admin`)
+
+### Built — iOS (Tai)
+
+**Foundation**
+- `xcodegen` project spec (`project.yml`), iOS 17+, Swift 6 strict concurrency
+- "Tropical Punch" design system: `Color+HabitFlow`, `Font+HabitFlow`, `HFComponents` (HFCard, HFPrimaryButton, HFProgressRing, pulsingFlame, HFErrorBanner, HFTextField)
+- `APIClient` (generic `send<T>` + `sendVoid`, ISO 8601 encode/decode, typed `APIError` including `.forbidden`)
+- `Endpoint` enum covering all surfaces: auth, habits, calendar, dashboard, AI chat
+- `KeychainStore` + `AuthStore` (`@Observable`, auto-login on launch)
+- `AppNavigator` (`@Observable`) — programmatic tab switching + calendar date targeting
+
+**Auth**
+- `LoginView` + `RegisterView` with `HFTextField` eye-toggle for password reveal/hide
+- Auto-login from Keychain on relaunch; logout clears token + navigates to login
+
+**Today tab**
+- Pulls `GET /dashboard`; shows greeting, overall streak with pulsing flame, `HFProgressRing` for daily completion
+- Habit rows with category icon, streak badge, toggle circle (optimistic UI + haptic feedback)
+- "View All" navigates to Habits tab via `AppNavigator`
+- Pull-to-refresh; empty state
+
+**Habits tab**
+- 2-column `LazyVGrid` of `BentoCard`s; each card shows category icon/badge, name, 7-dot Mon–Sun week grid (from `weekGrid`), streak, completion %
+- Long-press context menu: **Edit** (pre-filled `EditHabitSheet`, `PATCH /habits/:id`) + **Delete** (swipe-to-delete)
+- `CreateHabitSheet`: name, 3-column category chip grid, description
+- Free-tier limit: 403 from server opens `HabitLimitPaywallSheet` (lock icon, feature list, upgrade CTA)
+
+**Flow (AI Coach) tab**
+- Premium gating: free users see paywall card
+- Hamburger sidebar (280 pt slide) with full chat history — persisted to `UserDefaults`, survives app restarts
+- Suggestion chips on empty state; `BubbleView` with squared tail corner, `TypingIndicator` (3 animated dots)
+- AI-created event chips below reply bubble (teal, tappable) → navigates to Calendar tab on the event's date via `AppNavigator`
+- New-conversation button saves session to sidebar
+
+**Calendar tab**
+- `weekOffset` state — chevron buttons + swipe gesture to navigate weeks; "Today" button when off current week
+- Day chip highlights: orange filled = selected, orange ring = today, red dot = has events
+- Tappable "This Week." header → `MonthPickerSheet` (Mon-first grid, event dots, tap to jump)
+- `EventRow`: time gutter, duration, left orange accent bar; swipe-to-delete
+- `AddEventSheet`: title, all-day toggle, start/end `DatePicker`, notes; labels no longer clipped
+- Auto-reloads when AI creates events via `NotificationCenter`
+- `AppNavigator.calendarTargetDate` — jumping from event chip scrolls to correct week + selects day
+
+**Profile tab**
+- Initials avatar with orange border, role badge (teal=Premium, grey=Free, dark=Admin)
+- Live stats from `GET /dashboard`: overall streak, today completion ratio (`done/active`), active habit count
+- Settings rows (UI only), logout with confirmation dialog
+
+### Built — Backend (Taro, branch `api/calendar-ai-admin`)
+
+- **JWT logout** now truly invalidates tokens via `revoked_tokens` table + `jti` claim check
+- **`POST /ai/chat`** accepts `timezone` field; AI anchors local times correctly; response now includes `events: [ScheduledEvent]?`
+- **AI conversation history** — last 20 messages per user persisted in `ai_conversations` table
+- **AI multi-tool loops** — up to 5 tool-call rounds per message (fixes stuck multi-step requests)
+- **`PATCH /habits/:id`** alias added (previously `PUT` only)
+- **Frequency validation** — only `daily/weekly/monthly/custom` accepted
+- **Past log deletion** — `DELETE /habits/:id/log?date=yyyy-MM-dd`
+- **Free-tier habit cap** — 6th `POST /habits` returns 403 for free users
+- **Calendar soft-delete restore** — `POST /calendar/:id/restore`
+- **Pagination** — `GET /habits`, `GET /calendar`, `GET /admin/users` return `{ items, metadata }` envelope; iOS updated to unwrap `.items`
+- **Admin user delete** — `DELETE /admin/users/:id`
+- ISO 8601 date encoding configured globally in `configure.swift`
+
+### Bug fixes
+- `APIClient`: shared `JSONEncoder` with `.iso8601` strategy — dates were being sent as Unix timestamps, breaking `POST /calendar`
+- `CalendarView`: `onChange(of: weekOffset)` wrapped in `Task {}` (async closure not accepted by modifier)
+- `AIResponse`: added `events: [ScheduledEvent]?` to model; `ChatMessage.Role` made `Codable` for persistence
+- `APIError.forbidden` added; `APIClient` handles 403 separately from generic server errors
+
+### Decisions
+- **`AppNavigator`** as shared `@Observable` (not `NotificationCenter`) for tab switching — type-safe, testable
+- **Chat sessions to `UserDefaults`** (not backend) — keeps AI Coach stateless from iOS's perspective; server already stores message history
+- **No SSE streaming** — cut from scope per CLAUDE.md; single request/response cycle
+- **No Google Calendar sync** — cut from scope
+
+### Pending — waiting on Taro
+| # | What | Detail |
+|---|---|---|
+| 1 | AI tools for user data | Gemini needs `get_user_habits()` and `get_calendar_events(range)` tool functions so AI can answer "did I complete all?" |
+| 2 | Buddhist Era year bug | AI outputs year 2569 (BE) in ISO 8601 fields; iOS Thai calendar adds 543 → shows 3112. Gemini system prompt must specify Gregorian/CE years only, e.g. "Current Gregorian year is 2026." |
+| 3 | Calendar event category + edit | Add `category: String?` to `CalendarEvent` model + migration; add `PATCH /calendar/:id` |
+
+---
+
 ## Day 2 — Habits + Dashboard API · 2026-04-26 · DONE
 
 **Owner:** Taro (`api/`)
