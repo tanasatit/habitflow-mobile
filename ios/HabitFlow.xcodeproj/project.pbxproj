@@ -10,6 +10,7 @@
 		0E1BDC6355C17D8CAFB7454A /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1EE89DBD5A0C4FB09ED3FBF /* KeychainStore.swift */; };
 		0FE8DA41F58C1F708B5281CE /* CalendarModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA6BE2A27623FEEB8D2B81B0 /* CalendarModels.swift */; };
 		169D5B915D0FB26FE5CB9B85 /* AddEventSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32F88CD8455BEEBC616442D0 /* AddEventSheet.swift */; };
+		1B6D91897756F82026D0F7CF /* PageModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74E6938D80D70CCD36FC8866 /* PageModels.swift */; };
 		24EC2487083B2F0512CB68F3 /* HabitRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26ED5D953D6A383764CDD1EA /* HabitRowView.swift */; };
 		3C283FBDA81EF2B563302A0F /* RegisterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E72F4DA28592B3FC53C75F05 /* RegisterView.swift */; };
 		44B4B44F871560D745A53D67 /* HFComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2A752CF6B362390DC2B8C1F /* HFComponents.swift */; };
@@ -57,6 +58,7 @@
 		4BAED5024C80D0834E2F0AEC /* Color+HabitFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+HabitFlow.swift"; sourceTree = "<group>"; };
 		680F8F9A5E15AD476DE33E9A /* CoachView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachView.swift; sourceTree = "<group>"; };
 		6EBB28A034171367BE5F97D1 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		74E6938D80D70CCD36FC8866 /* PageModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageModels.swift; sourceTree = "<group>"; };
 		7761B18AC111414C2A3CE21C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		7B3DE59476187F2BBFAD9877 /* HabitsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HabitsViewModel.swift; sourceTree = "<group>"; };
 		7E48E06444EEC46A6AEAF56B /* CreateHabitSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateHabitSheet.swift; sourceTree = "<group>"; };
@@ -147,6 +149,7 @@
 			children = (
 				FA6BE2A27623FEEB8D2B81B0 /* CalendarModels.swift */,
 				03E42B29BC7A9B31C05B0F02 /* DashboardModels.swift */,
+				74E6938D80D70CCD36FC8866 /* PageModels.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -333,6 +336,7 @@
 				0E1BDC6355C17D8CAFB7454A /* KeychainStore.swift in Sources */,
 				F6D8DD620CD7385FF0EC9B1D /* LoginView.swift in Sources */,
 				CD9A7A253A1A54BFD40E9D25 /* Models.swift in Sources */,
+				1B6D91897756F82026D0F7CF /* PageModels.swift in Sources */,
 				450C17B1E18F47F173298551 /* ProfileView.swift in Sources */,
 				3C283FBDA81EF2B563302A0F /* RegisterView.swift in Sources */,
 				C78A245BAD965D832124F85C /* TodayView.swift in Sources */,

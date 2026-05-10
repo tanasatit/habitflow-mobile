@@ -15,7 +15,8 @@ final class CalendarViewModel {
         defer { isLoading = false }
         let (start, end) = weekBounds(for: date)
         do {
-            events = try await api.send(.calendar(start: start, end: end), token: token)
+            let page: Page<CalendarEvent> = try await api.send(.calendar(start: start, end: end), token: token)
+            events = page.items
         } catch let e as APIError {
             error = e.errorDescription
         } catch {

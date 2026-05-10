@@ -15,8 +15,8 @@ final class HabitsViewModel {
         error = nil
         defer { isLoading = false }
         do {
-            let loaded: [HabitItem] = try await api.send(.habits, token: token)
-            habits = loaded
+            let page: Page<HabitItem> = try await api.send(.habits, token: token)
+            habits = page.items
             await loadStats(token: token)
         } catch let e as APIError {
             error = e.errorDescription
