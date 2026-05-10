@@ -2,6 +2,7 @@ import SwiftUI
 
 struct TodayView: View {
     @Environment(AuthStore.self) private var auth
+    @Environment(AppNavigator.self) private var navigator
     @State private var vm = TodayViewModel()
 
     var body: some View {
@@ -54,7 +55,7 @@ struct TodayView: View {
             .padding(.top, HFSpacing.s5)
 
             // Today's Rituals
-            HFSectionHeader(title: "Today's Habits", actionTitle: "View all") { }
+            HFSectionHeader(title: "Today's Habits", actionTitle: "View all") { navigator.selectedTab = 1 }
                 .padding(.top, HFSpacing.s6)
                 .padding(.bottom, HFSpacing.s3)
 

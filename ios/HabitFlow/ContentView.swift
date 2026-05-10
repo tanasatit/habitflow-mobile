@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ContentView: View {
     @Environment(AuthStore.self) private var auth
+    @State private var navigator = AppNavigator()
 
     var body: some View {
         Group {
@@ -12,24 +13,27 @@ struct ContentView: View {
             }
         }
         .task { await auth.tryAutoLogin() }
+        .environment(navigator)
     }
 }
 
 struct MainTabView: View {
     @Environment(AuthStore.self) private var auth
+    @Environment(AppNavigator.self) private var navigator
 
     var body: some View {
-        TabView {
+        @Bindable var nav = navigator
+        TabView(selection: $nav.selectedTab) {
             TodayView()
-                .tabItem { Label("Today",    systemImage: "square.grid.2x2") }
+                .tabItem { Label("Today",    systemImage: "square.grid.2x2") }.tag(0)
             HabitsView()
-                .tabItem { Label("Habits",   systemImage: "checklist") }
+                .tabItem { Label("Habits",   systemImage: "checklist") }.tag(1)
             CoachView()
-                .tabItem { Label("Flow",     systemImage: "sparkles") }
+                .tabItem { Label("Flow",     systemImage: "sparkles") }.tag(2)
             CalendarView()
-                .tabItem { Label("Calendar", systemImage: "calendar") }
+                .tabItem { Label("Calendar", systemImage: "calendar") }.tag(3)
             ProfileView()
-                .tabItem { Label("Profile",  systemImage: "person") }
+                .tabItem { Label("Profile",  systemImage: "person") }.tag(4)
         }
         .tint(Color.hfPrimary)
     }

@@ -1,7 +1,7 @@
 import SwiftUI
 
 // A saved conversation session
-struct ChatSession: Identifiable {
+struct ChatSession: Identifiable, Codable {
     let id: UUID
     let title: String
     let date: Date
@@ -18,12 +18,31 @@ struct ChatSession: Identifiable {
     }
 }
 
+private enum SessionsStore {
+    static let key = "hf_chat_sessions"
+    static let encoder: JSONEncoder = { let e = JSONEncoder(); e.dateEncodingStrategy = .iso8601; return e }()
+    static let decoder: JSONDecoder = { let d = JSONDecoder(); d.dateDecodingStrategy = .iso8601; return d }()
+
+    static func load() -> [ChatSession] {
+        guard let data = UserDefaults.standard.data(forKey: key),
+              let sessions = try? decoder.decode([ChatSession].self, from: data) else { return [] }
+        return sessions
+    }
+
+    static func save(_ sessions: [ChatSession]) {
+        if let data = try? encoder.encode(sessions) {
+            UserDefaults.standard.set(data, forKey: key)
+        }
+    }
+}
+
 struct CoachView: View {
     @Environment(AuthStore.self) private var auth
+    @Environment(AppNavigator.self) private var navigator
     @State private var vm = CoachViewModel()
     @State private var draft = ""
     @State private var showSidebar = false
-    @State private var sessions: [ChatSession] = []
+    @State private var sessions: [ChatSession] = SessionsStore.load()
     @FocusState private var inputFocused: Bool
 
     private let suggestions = ["Plan my week", "Build a morning routine", "Review my progress", "Add a gym habit"]
@@ -178,8 +197,11 @@ struct CoachView: View {
                 LazyVStack(spacing: HFSpacing.s3) {
                     if vm.messages.isEmpty { emptyState }
                     ForEach(vm.messages) { msg in
-                        BubbleView(message: msg, userInitial: String(auth.user?.name.prefix(1) ?? "?"))
-                            .id(msg.id)
+                        BubbleView(message: msg, userInitial: String(auth.user?.name.prefix(1) ?? "?")) { date in
+                            navigator.calendarTargetDate = date
+                            navigator.selectedTab = 3
+                        }
+                        .id(msg.id)
                     }
                     if vm.isTyping {
                         TypingIndicator().id("typing")
@@ -310,6 +332,7 @@ struct CoachView: View {
     private func saveCurrent() {
         guard !vm.messages.isEmpty else { return }
         sessions.insert(ChatSession(messages: vm.messages), at: 0)
+        SessionsStore.save(sessions)
     }
 }
 
@@ -318,6 +341,7 @@ struct CoachView: View {
 struct BubbleView: View {
     let message: ChatMessage
     let userInitial: String
+    let onEventTap: (Date) -> Void
     private var isUser: Bool { message.role == .user }
 
     var body: some View {
@@ -355,26 +379,32 @@ struct BubbleView: View {
     private var eventChips: some View {
         VStack(alignment: .leading, spacing: HFSpacing.s1) {
             ForEach(message.events, id: \.title) { event in
-                HStack(spacing: HFSpacing.s2) {
-                    Image(systemName: "calendar.badge.plus")
-                        .font(.system(size: 11))
-                        .foregroundStyle(Color.hfTertiary)
-                    Text(event.title)
-                        .font(Font.system(size: 12, weight: .semibold))
-                        .foregroundStyle(Color.hfOnBackground)
-                    Spacer()
-                    Text(event.startTime, style: .time)
-                        .font(.system(size: 11))
-                        .foregroundStyle(Color.hfOnSurfaceVariant)
+                Button { onEventTap(event.startTime) } label: {
+                    HStack(spacing: HFSpacing.s2) {
+                        Image(systemName: "calendar.badge.plus")
+                            .font(.system(size: 11))
+                            .foregroundStyle(Color.hfTertiary)
+                        Text(event.title)
+                            .font(Font.system(size: 12, weight: .semibold))
+                            .foregroundStyle(Color.hfOnBackground)
+                        Spacer()
+                        Text(event.startTime, style: .time)
+                            .font(.system(size: 11))
+                            .foregroundStyle(Color.hfOnSurfaceVariant)
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(Color.hfOnSurfaceVariant)
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color.hfTertiary.opacity(0.08))
+                    .clipShape(RoundedRectangle(cornerRadius: HFRadius.md, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: HFRadius.md, style: .continuous)
+                            .stroke(Color.hfTertiary.opacity(0.25), lineWidth: 1)
+                    )
                 }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(Color.hfTertiary.opacity(0.08))
-                .clipShape(RoundedRectangle(cornerRadius: HFRadius.md, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: HFRadius.md, style: .continuous)
-                        .stroke(Color.hfTertiary.opacity(0.25), lineWidth: 1)
-                )
+                .buttonStyle(.plain)
             }
         }
     }

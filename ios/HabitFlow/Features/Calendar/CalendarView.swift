@@ -2,6 +2,7 @@ import SwiftUI
 
 struct CalendarView: View {
     @Environment(AuthStore.self) private var auth
+    @Environment(AppNavigator.self) private var navigator
     @State private var vm = CalendarViewModel()
     @State private var selectedDay = Date()
     @State private var weekOffset = 0          // 0 = current week, -1 = last week, +1 = next week
@@ -37,6 +38,13 @@ struct CalendarView: View {
         .refreshable { await loadCurrentWeek() }
         .onReceive(NotificationCenter.default.publisher(for: .calendarDidUpdate)) { _ in
             Task { await loadCurrentWeek() }
+        }
+        .onChange(of: navigator.calendarTargetDate) { _, date in
+            guard let date else { return }
+            let newOffset = weeksFrom(Date(), to: date)
+            selectedDay = date
+            weekOffset = newOffset
+            navigator.calendarTargetDate = nil
         }
         .sheet(isPresented: $showAddEvent) {
             AddEventSheet(token: auth.token ?? "", defaultDate: selectedDay) { request in

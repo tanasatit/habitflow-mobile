@@ -96,6 +96,7 @@ struct HFTextField: View {
     var isSecure = false
     var keyboard: UIKeyboardType = .default
     var capitalization: TextInputAutocapitalization = .sentences
+    @State private var revealed = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: HFSpacing.s2) {
@@ -103,19 +104,31 @@ struct HFTextField: View {
                 .font(Font.system(size: 12, weight: .semibold))
                 .foregroundStyle(Color.hfOnBackground)
 
-            Group {
+            ZStack(alignment: .trailing) {
+                Group {
+                    if isSecure && !revealed {
+                        SecureField("", text: $text)
+                    } else {
+                        TextField("", text: $text)
+                            .keyboardType(keyboard)
+                            .textInputAutocapitalization(isSecure ? .never : capitalization)
+                            .autocorrectionDisabled()
+                    }
+                }
+                .font(.system(size: 15))
+                .padding(.horizontal, HFSpacing.s4)
+                .padding(.trailing, isSecure ? 40 : 0)
+                .padding(.vertical, 13)
+
                 if isSecure {
-                    SecureField("", text: $text)
-                } else {
-                    TextField("", text: $text)
-                        .keyboardType(keyboard)
-                        .textInputAutocapitalization(capitalization)
-                        .autocorrectionDisabled()
+                    Button { revealed.toggle() } label: {
+                        Image(systemName: revealed ? "eye.slash" : "eye")
+                            .font(.system(size: 14))
+                            .foregroundStyle(Color.hfOnSurfaceVariant)
+                    }
+                    .padding(.trailing, HFSpacing.s4)
                 }
             }
-            .font(.system(size: 15))
-            .padding(.horizontal, HFSpacing.s4)
-            .padding(.vertical, 13)
             .background(Color.hfSurface)
             .clipShape(RoundedRectangle(cornerRadius: HFRadius.md, style: .continuous))
             .overlay(
