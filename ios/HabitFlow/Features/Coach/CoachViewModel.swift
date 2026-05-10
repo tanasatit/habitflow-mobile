@@ -20,7 +20,7 @@ final class CoachViewModel {
         do {
             let response: AIResponse = try await api.send(.aiChat(message: trimmed), token: token)
             isTyping = false
-            messages.append(ChatMessage(role: .assistant, text: response.reply))
+            messages.append(ChatMessage(role: .assistant, text: response.reply, events: response.events ?? []))
         } catch {
             isTyping = false
             self.error = "Couldn't reach AI Coach. Please try again."

@@ -325,24 +325,57 @@ struct BubbleView: View {
             if isUser { Spacer(minLength: HFSpacing.s10) }
             if !isUser { avatar }
 
-            Text(message.text)
-                .font(.system(size: 13)).lineSpacing(3)
-                .foregroundStyle(isUser ? .white : Color.hfOnBackground)
-                .padding(.horizontal, 13).padding(.vertical, 10)
-                .background(isUser ? Color.hfPrimary : Color.hfSurface)
-                .clipShape(.rect(
-                    topLeadingRadius: isUser ? HFRadius.lg : 4,
-                    bottomLeadingRadius: HFRadius.lg,
-                    bottomTrailingRadius: HFRadius.lg,
-                    topTrailingRadius: isUser ? 4 : HFRadius.lg
-                ))
-                .overlay(
-                    RoundedRectangle(cornerRadius: HFRadius.lg)
-                        .stroke(Color.hfOutline, lineWidth: isUser ? 0 : 1)
-                )
+            VStack(alignment: .leading, spacing: HFSpacing.s2) {
+                Text(message.text)
+                    .font(.system(size: 13)).lineSpacing(3)
+                    .foregroundStyle(isUser ? .white : Color.hfOnBackground)
+                    .padding(.horizontal, 13).padding(.vertical, 10)
+                    .background(isUser ? Color.hfPrimary : Color.hfSurface)
+                    .clipShape(.rect(
+                        topLeadingRadius: isUser ? HFRadius.lg : 4,
+                        bottomLeadingRadius: message.events.isEmpty ? HFRadius.lg : 4,
+                        bottomTrailingRadius: HFRadius.lg,
+                        topTrailingRadius: isUser ? 4 : HFRadius.lg
+                    ))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: HFRadius.lg)
+                            .stroke(Color.hfOutline, lineWidth: isUser ? 0 : 1)
+                    )
+
+                if !message.events.isEmpty {
+                    eventChips
+                }
+            }
 
             if isUser { avatar }
             else { Spacer(minLength: HFSpacing.s10) }
+        }
+    }
+
+    private var eventChips: some View {
+        VStack(alignment: .leading, spacing: HFSpacing.s1) {
+            ForEach(message.events, id: \.title) { event in
+                HStack(spacing: HFSpacing.s2) {
+                    Image(systemName: "calendar.badge.plus")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Color.hfTertiary)
+                    Text(event.title)
+                        .font(Font.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Color.hfOnBackground)
+                    Spacer()
+                    Text(event.startTime, style: .time)
+                        .font(.system(size: 11))
+                        .foregroundStyle(Color.hfOnSurfaceVariant)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(Color.hfTertiary.opacity(0.08))
+                .clipShape(RoundedRectangle(cornerRadius: HFRadius.md, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: HFRadius.md, style: .continuous)
+                        .stroke(Color.hfTertiary.opacity(0.25), lineWidth: 1)
+                )
+            }
         }
     }
 
