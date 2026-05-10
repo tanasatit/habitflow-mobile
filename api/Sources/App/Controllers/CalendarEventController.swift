@@ -11,11 +11,12 @@ struct CalendarEventController: RouteCollection {
         protected.post(use: create)
         protected.patch(":eventID", use: update)
         protected.delete(":eventID", use: delete)
+        protected.post(":eventID", "restore", use: restore)
     }
 
     // MARK: GET /calendar?start=&end=
     @Sendable
-    func index(req: Request) async throws -> [CalendarEventResponse] {
+    func index(req: Request) async throws -> Page<CalendarEventResponse> {
         let payload = try req.auth.require(UserPayload.self)
         guard let userID = payload.userID else { throw Abort(.unauthorized) }
 
@@ -28,7 +29,6 @@ struct CalendarEventController: RouteCollection {
               let endStr = req.query[String.self, at: "end"] else {
             throw Abort(.badRequest, reason: "start and end query parameters are required (ISO8601, e.g. 2026-05-08T00:00:00Z)")
         }
-
         guard let start = iso.date(from: startStr) ?? isoFrac.date(from: startStr) else {
             throw Abort(.badRequest, reason: "invalid start — use ISO8601 e.g. 2026-05-08T00:00:00Z")
         }
@@ -39,14 +39,24 @@ struct CalendarEventController: RouteCollection {
             throw Abort(.badRequest, reason: "end must be after start")
         }
 
+        let paging = (try? req.query.decode(PageRequest.self)) ?? PageRequest()
+        let total = try await CalendarEvent.query(on: req.db)
+            .filter(\.$user.$id == userID)
+            .filter(\.$startAt >= start)
+            .filter(\.$startAt < end)
+            .count()
         let events = try await CalendarEvent.query(on: req.db)
             .filter(\.$user.$id == userID)
             .filter(\.$startAt >= start)
             .filter(\.$startAt < end)
             .sort(\.$startAt, .ascending)
+            .range(paging.offset..<(paging.offset + paging.clampedPer))
             .all()
 
-        return try events.map { try CalendarEventResponse($0) }
+        return Page(
+            items: try events.map { try CalendarEventResponse($0) },
+            metadata: PageMetadata(page: max(paging.page, 1), per: paging.clampedPer, total: total)
+        )
     }
 
     // MARK: POST /calendar
@@ -110,6 +120,32 @@ struct CalendarEventController: RouteCollection {
         let event = try await findEventOrAbort(req: req, userID: userID)
         try await event.delete(on: req.db)
         return .noContent
+    }
+
+    // MARK: POST /calendar/:eventID/restore
+    @Sendable
+    func restore(req: Request) async throws -> CalendarEventResponse {
+        let payload = try req.auth.require(UserPayload.self)
+        guard let userID = payload.userID else { throw Abort(.unauthorized) }
+
+        guard let eventID = req.parameters.get("eventID", as: UUID.self) else {
+            throw Abort(.badRequest, reason: "invalid event ID")
+        }
+        guard let event = try await CalendarEvent.query(on: req.db)
+            .withDeleted()
+            .filter(\.$id == eventID)
+            .filter(\.$deletedAt != nil)
+            .first()
+        else {
+            throw Abort(.notFound)
+        }
+        guard event.$user.id == userID else {
+            throw Abort(.forbidden, reason: "Not your event")
+        }
+
+        event.deletedAt = nil
+        try await event.update(on: req.db)
+        return try CalendarEventResponse(event)
     }
 
     // MARK: - Private

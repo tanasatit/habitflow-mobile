@@ -4,11 +4,18 @@ import Vapor
 
 struct ChatRequest: Content, Sendable {
     let message: String
+    let timezone: String?
+}
+
+struct CreatedEventResponse: Content, Sendable {
+    let title: String
+    let startTime: Date
 }
 
 struct ChatResponse: Content, Sendable {
     let reply: String
     let calendarUpdated: Bool
+    let events: [CreatedEventResponse]?
 }
 
 // MARK: - Gemini wire types

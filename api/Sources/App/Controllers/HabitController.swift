@@ -11,6 +11,7 @@ struct HabitController: RouteCollection {
         protected.post(use: create)
         protected.get(":habitID", use: show)
         protected.put(":habitID", use: update)
+        protected.patch(":habitID", use: update)
         protected.delete(":habitID", use: delete)
         protected.post(":habitID", "log", use: logHabit)
         protected.delete(":habitID", "log", use: unlogHabit)
@@ -19,16 +20,24 @@ struct HabitController: RouteCollection {
 
     // MARK: GET /habits
     @Sendable
-    func index(req: Request) async throws -> [HabitResponse] {
+    func index(req: Request) async throws -> Page<HabitResponse> {
         let payload = try req.auth.require(UserPayload.self)
         guard let userID = payload.userID else { throw Abort(.unauthorized) }
 
+        let paging = (try? req.query.decode(PageRequest.self)) ?? PageRequest()
+        let total = try await Habit.query(on: req.db)
+            .filter(\.$user.$id == userID)
+            .count()
         let habits = try await Habit.query(on: req.db)
             .filter(\.$user.$id == userID)
             .sort(\.$createdAt, .ascending)
+            .range(paging.offset..<(paging.offset + paging.clampedPer))
             .all()
 
-        return try habits.map { try HabitResponse($0) }
+        return Page(
+            items: try habits.map { try HabitResponse($0) },
+            metadata: PageMetadata(page: max(paging.page, 1), per: paging.clampedPer, total: total)
+        )
     }
 
     // MARK: POST /habits
@@ -43,11 +52,22 @@ struct HabitController: RouteCollection {
             throw Abort(.badRequest, reason: "name is required")
         }
 
+        if payload.role == .free {
+            let activeCount = try await Habit.query(on: req.db)
+                .filter(\.$user.$id == userID)
+                .filter(\.$isActive == true)
+                .count()
+            guard activeCount < 5 else {
+                throw Abort(.forbidden, reason: "Upgrade to premium to create more than 5 habits")
+            }
+        }
+
+        let frequency = try validatedFrequency(body.frequency ?? "daily")
         let habit = Habit(
             userID: userID,
             name: name,
             category: body.category,
-            frequency: body.frequency ?? "daily",
+            frequency: frequency,
             targetTime: body.targetTime,
             description: body.description
         )
@@ -84,6 +104,9 @@ struct HabitController: RouteCollection {
         if let targetTime = body.targetTime { habit.targetTime = targetTime }
         if let description = body.description { habit.description = description }
         if let isActive = body.isActive { habit.isActive = isActive }
+        if let frequency = body.frequency {
+            habit.frequency = try validatedFrequency(frequency)
+        }
 
         try await habit.update(on: req.db)
         return try HabitResponse(habit)
@@ -140,18 +163,30 @@ struct HabitController: RouteCollection {
         let habit = try await findHabitOrAbort(req: req, userID: userID)
         guard let habitID = habit.id else { throw Abort(.internalServerError) }
 
-        // UTC boundaries — must match the unique index semantics.
-        let (todayStart, tomorrowStart) = utcDayBounds()
+        let targetDate: Date
+        if let dateStr = req.query[String.self, at: "date"] {
+            let fmt = DateFormatter()
+            fmt.dateFormat = "yyyy-MM-dd"
+            fmt.timeZone = TimeZone(identifier: "UTC")!
+            guard let parsed = fmt.date(from: dateStr) else {
+                throw Abort(.badRequest, reason: "invalid date — use yyyy-MM-dd format, e.g. 2026-05-07")
+            }
+            targetDate = parsed
+        } else {
+            targetDate = Date()
+        }
+
+        let (dayStart, tomorrowStart) = utcDayBounds(for: targetDate)
 
         guard let log = try await HabitLog.query(on: req.db)
             .filter(\.$habit.$id == habitID)
             .filter(\.$user.$id == userID)
-            .filter(\.$completedAt >= todayStart)
+            .filter(\.$completedAt >= dayStart)
             .filter(\.$completedAt < tomorrowStart)
             .sort(\.$completedAt, .descending)
             .first()
         else {
-            throw Abort(.notFound, reason: "no log found for today")
+            throw Abort(.notFound, reason: "no log found for that date")
         }
 
         try await log.delete(force: true, on: req.db)
@@ -183,6 +218,14 @@ struct HabitController: RouteCollection {
     }
 
     // MARK: - Private
+
+    private func validatedFrequency(_ raw: String) throws -> String {
+        guard HabitFrequency(rawValue: raw) != nil else {
+            let valid = HabitFrequency.allCases.map(\.rawValue).joined(separator: ", ")
+            throw Abort(.badRequest, reason: "invalid frequency — valid values: \(valid)")
+        }
+        return raw
+    }
 
     private func utcDayBounds(for date: Date = Date()) -> (start: Date, end: Date) {
         var cal = Calendar(identifier: .gregorian)

@@ -122,7 +122,7 @@ final class HabitControllerTests: XCTestCase {
             headers: bearer(token1),
             afterResponse: { res async throws in
                 XCTAssertEqual(res.status, .ok)
-                let habits = try res.content.decode([HabitResponse].self)
+                let habits = try res.content.decode(Page<HabitResponse>.self).items
                 XCTAssertEqual(habits.count, 2)
                 XCTAssertTrue(habits.allSatisfy { $0.name.hasPrefix("A") })
             }
@@ -321,6 +321,42 @@ final class HabitControllerTests: XCTestCase {
         )
     }
 
+    func testUnlogPastDate() async throws {
+        let token = try await register(email: "unlog@test.com")
+        let habit = try await makeHabit(token: token)
+
+        let yesterday = Date().addingTimeInterval(-86400)
+        try await app.test(.POST, "habits/\(habit.id)/log",
+            headers: bearer(token),
+            beforeRequest: { req in
+                try req.content.encode(LogHabitRequest(completedAt: yesterday, notes: nil))
+            },
+            afterResponse: { res async throws in XCTAssertEqual(res.status, .created) }
+        )
+
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "UTC")!
+        let fmt = DateFormatter()
+        fmt.dateFormat = "yyyy-MM-dd"
+        fmt.timeZone = TimeZone(identifier: "UTC")!
+        let yesterdayStr = fmt.string(from: yesterday)
+
+        try await app.test(.DELETE, "habits/\(habit.id)/log?date=\(yesterdayStr)",
+            headers: bearer(token),
+            afterResponse: { res async throws in XCTAssertEqual(res.status, .noContent) }
+        )
+    }
+
+    func testUnlogReturnsWith404WhenNoLogExists() async throws {
+        let token = try await register(email: "unlog404@test.com")
+        let habit = try await makeHabit(token: token)
+
+        try await app.test(.DELETE, "habits/\(habit.id)/log?date=2020-01-01",
+            headers: bearer(token),
+            afterResponse: { res async throws in XCTAssertEqual(res.status, .notFound) }
+        )
+    }
+
     // MARK: - Stats
 
     func testStatsAfterOneLog() async throws {
@@ -397,6 +433,69 @@ final class HabitControllerTests: XCTestCase {
                 XCTAssertEqual(dash.habitsSummary.completedToday, 0)
                 XCTAssertEqual(dash.overallStreak, 0)
                 XCTAssertTrue(dash.todayHabits.isEmpty)
+            }
+        )
+    }
+
+    // MARK: - Premium gating
+
+    func testFreeUserCanCreateUpToFiveHabits() async throws {
+        let token = try await register(email: "premium@test.com")
+        for i in 1...5 {
+            try await app.test(.POST, "habits",
+                headers: bearer(token),
+                beforeRequest: { req in
+                    try req.content.encode(CreateHabitRequest(
+                        name: "Habit \(i)", category: nil, frequency: "daily",
+                        targetTime: nil, description: nil
+                    ))
+                },
+                afterResponse: { res async throws in XCTAssertEqual(res.status, .created) }
+            )
+        }
+        try await app.test(.POST, "habits",
+            headers: bearer(token),
+            beforeRequest: { req in
+                try req.content.encode(CreateHabitRequest(
+                    name: "Habit 6", category: nil, frequency: "daily",
+                    targetTime: nil, description: nil
+                ))
+            },
+            afterResponse: { res async throws in XCTAssertEqual(res.status, .forbidden) }
+        )
+    }
+
+    // MARK: - Frequency validation
+
+    func testCreateHabitRejectsInvalidFrequency() async throws {
+        let token = try await register()
+        try await app.test(.POST, "habits",
+            headers: bearer(token),
+            beforeRequest: { req in
+                try req.content.encode(CreateHabitRequest(
+                    name: "Test", category: nil, frequency: "sometimes",
+                    targetTime: nil, description: nil
+                ))
+            },
+            afterResponse: { res async throws in
+                XCTAssertEqual(res.status, .badRequest)
+            }
+        )
+    }
+
+    func testUpdateHabitRejectsInvalidFrequency() async throws {
+        let token = try await register()
+        let habit = try await makeHabit(token: token)
+        try await app.test(.PUT, "habits/\(habit.id)",
+            headers: bearer(token),
+            beforeRequest: { req in
+                try req.content.encode(UpdateHabitRequest(
+                    name: nil, category: nil, targetTime: nil,
+                    description: nil, isActive: nil, frequency: "never"
+                ))
+            },
+            afterResponse: { res async throws in
+                XCTAssertEqual(res.status, .badRequest)
             }
         )
     }

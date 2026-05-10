@@ -10,15 +10,23 @@ struct AdminController: RouteCollection {
         admin.get("users", use: listUsers)
         admin.patch("users", ":userID", "role", use: updateRole)
         admin.post("seed", use: seed)
+        admin.delete("users", ":userID", use: deleteUser)
     }
 
     // MARK: GET /admin/users
     @Sendable
-    func listUsers(req: Request) async throws -> [AdminUserResponse] {
+    func listUsers(req: Request) async throws -> Page<AdminUserResponse> {
+        let paging = (try? req.query.decode(PageRequest.self)) ?? PageRequest()
+        let total = try await User.query(on: req.db).count()
         let users = try await User.query(on: req.db)
             .sort(\.$createdAt, .ascending)
+            .range(paging.offset..<(paging.offset + paging.clampedPer))
             .all()
-        return try users.map { try AdminUserResponse($0) }
+
+        return Page(
+            items: try users.map { try AdminUserResponse($0) },
+            metadata: PageMetadata(page: max(paging.page, 1), per: paging.clampedPer, total: total)
+        )
     }
 
     // MARK: PATCH /admin/users/:userID/role
@@ -95,6 +103,25 @@ struct AdminController: RouteCollection {
         }
 
         return SeedResponse(message: "Seed complete", userEmail: demoEmail, password: demoPassword)
+    }
+
+    // MARK: DELETE /admin/users/:userID
+    @Sendable
+    func deleteUser(req: Request) async throws -> HTTPStatus {
+        let payload = try req.auth.require(UserPayload.self)
+        guard let callerID = payload.userID else { throw Abort(.unauthorized) }
+
+        guard let userID = req.parameters.get("userID", as: UUID.self) else {
+            throw Abort(.badRequest, reason: "invalid user ID")
+        }
+        guard userID != callerID else {
+            throw Abort(.badRequest, reason: "cannot delete your own account")
+        }
+        guard let user = try await User.find(userID, on: req.db) else {
+            throw Abort(.notFound, reason: "user not found")
+        }
+        try await user.delete(on: req.db)
+        return .noContent
     }
 
     private func upcomingMWFDates(count: Int, after date: Date, calendar: Calendar) -> [Date] {

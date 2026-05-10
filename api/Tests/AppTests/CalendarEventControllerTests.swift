@@ -56,6 +56,30 @@ final class CalendarEventControllerTests: XCTestCase {
         return try XCTUnwrap(event)
     }
 
+    func testCreateEventAcceptsISO8601DateStrings() async throws {
+        let token = try await register()
+        try await app.test(.POST, "calendar",
+            beforeRequest: { req in
+                req.headers.contentType = .json
+                req.body = ByteBuffer(string: """
+                {"title":"ISO Test","startAt":"2026-05-10T07:00:00Z","endAt":"2026-05-10T07:30:00Z"}
+                """)
+                req.headers.replaceOrAdd(name: .authorization, value: "Bearer \(token)")
+            },
+            afterResponse: { res async throws in
+                XCTAssertEqual(res.status, .created)
+                let event = try res.content.decode(CalendarEventResponse.self)
+                // Verify the date round-trips — encoder produces ISO 8601, not a Double
+                var cal = Calendar(identifier: .gregorian)
+                cal.timeZone = TimeZone(identifier: "UTC")!
+                let comps = cal.dateComponents([.year, .month, .day], from: event.startAt)
+                XCTAssertEqual(comps.year, 2026)
+                XCTAssertEqual(comps.month, 5)
+                XCTAssertEqual(comps.day, 10)
+            }
+        )
+    }
+
     // MARK: - Tests
 
     func testCreateEvent() async throws {
@@ -115,7 +139,7 @@ final class CalendarEventControllerTests: XCTestCase {
             headers: bearer(token),
             afterResponse: { res async throws in
                 XCTAssertEqual(res.status, .ok)
-                let events = try res.content.decode([CalendarEventResponse].self)
+                let events = try res.content.decode(Page<CalendarEventResponse>.self).items
                 XCTAssertEqual(events.count, 1)
             }
         )
@@ -187,6 +211,35 @@ final class CalendarEventControllerTests: XCTestCase {
     func testRequiresAuth() async throws {
         try await app.test(.GET, "calendar?start=2026-01-01T00:00:00Z&end=2026-12-31T00:00:00Z",
             afterResponse: { res async throws in XCTAssertEqual(res.status, .unauthorized) }
+        )
+    }
+
+    // MARK: - Restore
+
+    func testRestoreDeletedEvent() async throws {
+        let token = try await register()
+        let event = try await makeEvent(token: token)
+
+        try await app.test(.DELETE, "calendar/\(event.id)", headers: bearer(token),
+            afterResponse: { res async throws in XCTAssertEqual(res.status, .noContent) }
+        )
+
+        try await app.test(.POST, "calendar/\(event.id)/restore", headers: bearer(token),
+            afterResponse: { res async throws in
+                XCTAssertEqual(res.status, .ok)
+                let restored = try res.content.decode(CalendarEventResponse.self)
+                XCTAssertEqual(restored.id, event.id)
+                XCTAssertEqual(restored.title, event.title)
+            }
+        )
+    }
+
+    func testRestoreReturns404ForNonDeletedEvent() async throws {
+        let token = try await register(email: "restore2@test.com")
+        let event = try await makeEvent(token: token)
+
+        try await app.test(.POST, "calendar/\(event.id)/restore", headers: bearer(token),
+            afterResponse: { res async throws in XCTAssertEqual(res.status, .notFound) }
         )
     }
 }
