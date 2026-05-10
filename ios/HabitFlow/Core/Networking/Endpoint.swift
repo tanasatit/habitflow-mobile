@@ -62,6 +62,12 @@ struct Endpoint {
         Endpoint(path: "/habits/\(id)", method: .DELETE, body: nil, requiresAuth: true)
     }
 
+    static func updateHabit(id: String, name: String, category: String, description: String?) -> Endpoint {
+        var b: [String: String] = ["name": name, "category": category]
+        if let desc = description { b["description"] = desc }
+        return Endpoint(path: "/habits/\(id)", method: .PATCH, body: b, requiresAuth: true)
+    }
+
     static func calendar(start: Date, end: Date) -> Endpoint {
         let fmt = ISO8601DateFormatter()
         let q = "?start=\(fmt.string(from: start))&end=\(fmt.string(from: end))"

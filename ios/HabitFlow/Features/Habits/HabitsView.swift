@@ -4,6 +4,7 @@ struct HabitsView: View {
     @Environment(AuthStore.self) private var auth
     @State private var vm = HabitsViewModel()
     @State private var showCreate = false
+    @State private var habitToEdit: HabitItem?
 
     private let columns = [GridItem(.flexible()), GridItem(.flexible())]
 
@@ -49,6 +50,11 @@ struct HabitsView: View {
                         ForEach(vm.habits) { habit in
                             BentoCard(habit: habit, stats: vm.stats[habit.id])
                                 .contextMenu {
+                                    Button {
+                                        habitToEdit = habit
+                                    } label: {
+                                        Label("Edit", systemImage: "pencil")
+                                    }
                                     Button(role: .destructive) {
                                         Task { await vm.deleteHabit(id: habit.id, token: auth.token ?? "") }
                                     } label: {
@@ -90,6 +96,10 @@ struct HabitsView: View {
                 await vm.load(token: auth.token ?? "")
             }
             .presentationDetents([.medium, .large])
+        }
+        .sheet(item: $habitToEdit) { habit in
+            EditHabitSheet(habit: habit, token: auth.token ?? "", vm: vm)
+                .presentationDetents([.medium, .large])
         }
     }
 }

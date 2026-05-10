@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		0E1BDC6355C17D8CAFB7454A /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1EE89DBD5A0C4FB09ED3FBF /* KeychainStore.swift */; };
 		0FE8DA41F58C1F708B5281CE /* CalendarModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA6BE2A27623FEEB8D2B81B0 /* CalendarModels.swift */; };
+		116E5CEC848BCB683EFBF8F4 /* EditHabitSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04BC08207F4CF86D0BCC0C1D /* EditHabitSheet.swift */; };
 		169D5B915D0FB26FE5CB9B85 /* AddEventSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32F88CD8455BEEBC616442D0 /* AddEventSheet.swift */; };
 		1B6D91897756F82026D0F7CF /* PageModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74E6938D80D70CCD36FC8866 /* PageModels.swift */; };
 		24EC2487083B2F0512CB68F3 /* HabitRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26ED5D953D6A383764CDD1EA /* HabitRowView.swift */; };
@@ -42,6 +43,7 @@
 
 /* Begin PBXFileReference section */
 		03E42B29BC7A9B31C05B0F02 /* DashboardModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardModels.swift; sourceTree = "<group>"; };
+		04BC08207F4CF86D0BCC0C1D /* EditHabitSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditHabitSheet.swift; sourceTree = "<group>"; };
 		061039E04CDE9DD67952271F /* HabitFlowApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HabitFlowApp.swift; sourceTree = "<group>"; };
 		0ABB70074729E0B5E9CC8539 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
 		104139CF2D04DC377372F445 /* AuthStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthStore.swift; sourceTree = "<group>"; };
@@ -195,6 +197,7 @@
 			isa = PBXGroup;
 			children = (
 				7E48E06444EEC46A6AEAF56B /* CreateHabitSheet.swift */,
+				04BC08207F4CF86D0BCC0C1D /* EditHabitSheet.swift */,
 				9CC83D967BC55BB95B313D58 /* HabitsView.swift */,
 				7B3DE59476187F2BBFAD9877 /* HabitsViewModel.swift */,
 			);
@@ -326,6 +329,7 @@
 				B462C0C2088496B7BC0609D8 /* ContentView.swift in Sources */,
 				4B7FF5CEA18C348D3221AFDE /* CreateHabitSheet.swift in Sources */,
 				69DA1E9CFA857BF6D90FF0DE /* DashboardModels.swift in Sources */,
+				116E5CEC848BCB683EFBF8F4 /* EditHabitSheet.swift in Sources */,
 				9B7D29EC89A0AE8A9DAA7F56 /* Endpoint.swift in Sources */,
 				78A2AF9B78B5B59800D2168F /* Font+HabitFlow.swift in Sources */,
 				44B4B44F871560D745A53D67 /* HFComponents.swift in Sources */,

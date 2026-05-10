@@ -36,6 +36,16 @@ final class HabitsViewModel {
         }
     }
 
+    func updateHabit(id: String, name: String, category: String, description: String?, token: String) async throws {
+        let updated: HabitItem = try await api.send(
+            .updateHabit(id: id, name: name, category: category, description: description),
+            token: token
+        )
+        if let idx = habits.firstIndex(where: { $0.id == id }) {
+            habits[idx] = updated
+        }
+    }
+
     func deleteHabit(id: String, token: String) async {
         do {
             try await api.sendVoid(.deleteHabit(id: id), token: token)
