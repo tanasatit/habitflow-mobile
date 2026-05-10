@@ -1,5 +1,9 @@
 import SwiftUI
 
+extension Notification.Name {
+    static let calendarDidUpdate = Notification.Name("calendarDidUpdate")
+}
+
 @MainActor
 @Observable
 final class CoachViewModel {
@@ -21,6 +25,9 @@ final class CoachViewModel {
             let response: AIResponse = try await api.send(.aiChat(message: trimmed), token: token)
             isTyping = false
             messages.append(ChatMessage(role: .assistant, text: response.reply, events: response.events ?? []))
+            if response.calendarUpdated {
+                NotificationCenter.default.post(name: .calendarDidUpdate, object: nil)
+            }
         } catch {
             isTyping = false
             self.error = "Couldn't reach AI Coach. Please try again."

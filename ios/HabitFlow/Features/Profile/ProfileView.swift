@@ -3,6 +3,7 @@ import SwiftUI
 struct ProfileView: View {
     @Environment(AuthStore.self) private var auth
     @State private var showLogoutConfirm = false
+    @State private var dashboard: DashboardResponse?
 
     private var user: User? { auth.user }
     private var initial: String { String(user?.name.prefix(1).uppercased() ?? "?") }
@@ -36,6 +37,7 @@ struct ProfileView: View {
             .padding(.bottom, HFSpacing.s8)
         }
         .background(Color.hfBackground)
+        .task { await loadDashboard() }
         .confirmationDialog("Log out of HabitFlow?", isPresented: $showLogoutConfirm, titleVisibility: .visible) {
             Button("Log Out", role: .destructive) { auth.logout() }
             Button("Cancel", role: .cancel) { }
@@ -97,26 +99,22 @@ struct ProfileView: View {
     // MARK: - Stats row
 
     private var statsRow: some View {
-        HStack(spacing: HFSpacing.s3) {
-            ProfileStatCard(
-                value: "–",
-                label: "day streak",
-                color: .hfPrimary,
-                icon: "flame.fill"
-            )
-            ProfileStatCard(
-                value: "–",
-                label: "completion",
-                color: .hfTertiary,
-                icon: "checkmark.circle.fill"
-            )
-            ProfileStatCard(
-                value: "–",
-                label: "habits",
-                color: .hfOnBackground,
-                icon: "checklist"
-            )
+        let streak = dashboard.map { "\($0.overallStreak)" } ?? "–"
+        let summary = dashboard?.habitsSummary
+        let completion = summary.map { "\($0.completedToday)/\($0.active)" } ?? "–"
+        let habits = summary.map { "\($0.active)" } ?? "–"
+
+        return HStack(spacing: HFSpacing.s3) {
+            ProfileStatCard(value: streak,     label: "day streak",  color: .hfPrimary,      icon: "flame.fill")
+            ProfileStatCard(value: completion, label: "today",        color: .hfTertiary,     icon: "checkmark.circle.fill")
+            ProfileStatCard(value: habits,     label: "habits",       color: .hfOnBackground, icon: "checklist")
         }
+    }
+
+    // MARK: - Helpers
+
+    private func loadDashboard() async {
+        dashboard = try? await APIClient.shared.send(.dashboard, token: auth.token ?? "")
     }
 
     // MARK: - Settings section

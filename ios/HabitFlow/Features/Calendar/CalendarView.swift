@@ -35,6 +35,9 @@ struct CalendarView: View {
         .task { await loadCurrentWeek() }
         .onChange(of: weekOffset) { Task { await loadCurrentWeek() } }
         .refreshable { await loadCurrentWeek() }
+        .onReceive(NotificationCenter.default.publisher(for: .calendarDidUpdate)) { _ in
+            Task { await loadCurrentWeek() }
+        }
         .sheet(isPresented: $showAddEvent) {
             AddEventSheet(token: auth.token ?? "", defaultDate: selectedDay) { request in
                 try await vm.createEvent(request, token: auth.token ?? "")

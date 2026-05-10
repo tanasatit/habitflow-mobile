@@ -147,6 +147,17 @@ struct BentoCard: View {
 
                 Spacer(minLength: 0)
 
+                // Week grid (Mon–Sun dots)
+                if let grid = stats?.weekGrid, !grid.isEmpty {
+                    HStack(spacing: 4) {
+                        ForEach(Array(grid.enumerated()), id: \.offset) { _, done in
+                            Circle()
+                                .fill(done ? Color.hfTertiary : Color.hfSurfaceVariant)
+                                .frame(width: 7, height: 7)
+                        }
+                    }
+                }
+
                 // Streak + completion %
                 HStack {
                     HStack(spacing: 3) {
