@@ -77,11 +77,15 @@ struct GeminiFunctionCall: Codable, Sendable {
 
 struct GeminiFunctionCallArgs: Codable, Sendable {
     let events: [GeminiCalendarEventArg]?
+    let start: String?
+    let end: String?
 
-    private enum CodingKeys: String, CodingKey { case events }
+    private enum CodingKeys: String, CodingKey { case events, start, end }
     func encode(to encoder: any Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
         try c.encodeIfPresent(events, forKey: .events)
+        try c.encodeIfPresent(start, forKey: .start)
+        try c.encodeIfPresent(end, forKey: .end)
     }
 }
 
@@ -90,14 +94,16 @@ struct GeminiCalendarEventArg: Codable, Sendable {
     let startAt: String
     let endAt: String
     let notes: String?
+    let category: String?
 
-    private enum CodingKeys: String, CodingKey { case title, startAt, endAt, notes }
+    private enum CodingKeys: String, CodingKey { case title, startAt, endAt, notes, category }
     func encode(to encoder: any Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
         try c.encode(title, forKey: .title)
         try c.encode(startAt, forKey: .startAt)
         try c.encode(endAt, forKey: .endAt)
         try c.encodeIfPresent(notes, forKey: .notes)
+        try c.encodeIfPresent(category, forKey: .category)
     }
 }
 

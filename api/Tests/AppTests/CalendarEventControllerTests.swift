@@ -242,4 +242,51 @@ final class CalendarEventControllerTests: XCTestCase {
             afterResponse: { res async throws in XCTAssertEqual(res.status, .notFound) }
         )
     }
+
+    // MARK: - Category
+
+    func testCreateEventWithCategory() async throws {
+        let token = try await register(email: "cat1@test.com")
+        try await app.test(.POST, "calendar",
+            headers: bearer(token),
+            beforeRequest: { req in
+                try req.content.encode(CreateCalendarEventRequest(
+                    title: "Morning Run",
+                    notes: nil,
+                    startAt: Date().addingTimeInterval(3600),
+                    endAt: Date().addingTimeInterval(5400),
+                    allDay: nil,
+                    category: "fitness"
+                ))
+            },
+            afterResponse: { res async throws in
+                XCTAssertEqual(res.status, .created)
+                let event = try res.content.decode(CalendarEventResponse.self)
+                XCTAssertEqual(event.category, "fitness")
+            }
+        )
+    }
+
+    func testCreateEventWithoutCategoryReturnsNilCategory() async throws {
+        let token = try await register(email: "cat2@test.com")
+        let event = try await makeEvent(token: token)
+        XCTAssertNil(event.category)
+    }
+
+    func testPatchEventCategory() async throws {
+        let token = try await register(email: "cat3@test.com")
+        let event = try await makeEvent(token: token)
+
+        try await app.test(.PATCH, "calendar/\(event.id)",
+            headers: bearer(token),
+            beforeRequest: { req in
+                try req.content.encode(UpdateCalendarEventRequest(category: "work"))
+            },
+            afterResponse: { res async throws in
+                XCTAssertEqual(res.status, .ok)
+                let updated = try res.content.decode(CalendarEventResponse.self)
+                XCTAssertEqual(updated.category, "work")
+            }
+        )
+    }
 }

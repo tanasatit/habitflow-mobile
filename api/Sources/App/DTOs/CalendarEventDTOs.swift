@@ -10,12 +10,12 @@ struct CreateCalendarEventRequest: Content, Sendable {
 }
 
 struct UpdateCalendarEventRequest: Content, Sendable {
-    let title: String?
-    let notes: String?
-    let category: String?
-    let startAt: Date?
-    let endAt: Date?
-    let allDay: Bool?
+    var title: String? = nil
+    var notes: String? = nil
+    var category: String? = nil
+    var startAt: Date? = nil
+    var endAt: Date? = nil
+    var allDay: Bool? = nil
 }
 
 struct CalendarEventResponse: Content, Sendable {
