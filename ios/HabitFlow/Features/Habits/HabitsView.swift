@@ -48,19 +48,10 @@ struct HabitsView: View {
                 } else {
                     LazyVGrid(columns: columns, spacing: HFSpacing.s3) {
                         ForEach(vm.habits) { habit in
-                            BentoCard(habit: habit, stats: vm.stats[habit.id])
-                                .contextMenu {
-                                    Button {
-                                        habitToEdit = habit
-                                    } label: {
-                                        Label("Edit", systemImage: "pencil")
-                                    }
-                                    Button(role: .destructive) {
-                                        Task { await vm.deleteHabit(id: habit.id, token: auth.token ?? "") }
-                                    } label: {
-                                        Label("Delete", systemImage: "trash")
-                                    }
-                                }
+                            Button { habitToEdit = habit } label: {
+                                BentoCard(habit: habit, stats: vm.stats[habit.id])
+                            }
+                            .buttonStyle(.plain)
                         }
                         // Dashed "add" card
                         Button { showCreate = true } label: {
