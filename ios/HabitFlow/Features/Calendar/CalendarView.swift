@@ -416,6 +416,18 @@ struct EventRow: View {
     let event: CalendarEvent
     let timeFormatter: DateFormatter
 
+    private var accentColor: Color {
+        switch event.category {
+        case "work":     return .blue
+        case "health":   return .green
+        case "personal": return .purple
+        case "study":    return .indigo
+        case "social":   return Color.hfPrimary
+        case "other":    return Color.gray
+        default:         return Color.hfPrimary
+        }
+    }
+
     var body: some View {
         HStack(alignment: .top, spacing: HFSpacing.s3) {
             VStack(alignment: .trailing, spacing: 2) {
@@ -431,33 +443,34 @@ struct EventRow: View {
             }
             .frame(width: 60, alignment: .trailing)
 
-            VStack(alignment: .leading, spacing: HFSpacing.s1) {
-                Text(event.title)
-                    .font(Font.system(size: 14, weight: .semibold))
-                    .foregroundStyle(Color.hfOnBackground)
-                if let notes = event.notes, !notes.isEmpty {
-                    Text(notes)
-                        .font(.hfBodySmall)
-                        .foregroundStyle(Color.hfOnSurfaceVariant)
-                        .lineLimit(1)
+            HStack(spacing: 0) {
+                Rectangle()
+                    .fill(accentColor)
+                    .frame(width: 3)
+
+                VStack(alignment: .leading, spacing: HFSpacing.s1) {
+                    Text(event.title)
+                        .font(Font.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Color.hfOnBackground)
+                    if let notes = event.notes, !notes.isEmpty {
+                        Text(notes)
+                            .font(.hfBodySmall)
+                            .foregroundStyle(Color.hfOnSurfaceVariant)
+                            .lineLimit(1)
+                    }
+                    HStack(spacing: HFSpacing.s1) {
+                        Image(systemName: event.category != nil ? "tag" : "pencil")
+                            .font(.system(size: 9))
+                        Text((event.category?.capitalized) ?? "Manual")
+                            .font(Font.system(size: 10, weight: .semibold))
+                    }
+                    .foregroundStyle(accentColor)
                 }
-                HStack(spacing: HFSpacing.s1) {
-                    Image(systemName: event.category != nil ? "tag" : "pencil")
-                        .font(.system(size: 9))
-                    Text((event.category?.capitalized) ?? "Manual")
-                        .font(Font.system(size: 10, weight: .semibold))
-                }
-                .foregroundStyle(Color.hfPrimary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(HFSpacing.s3)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(HFSpacing.s3)
             .background(Color.hfSurface)
             .clipShape(RoundedRectangle(cornerRadius: HFRadius.lg, style: .continuous))
-            .overlay(alignment: .leading) {
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(Color.hfPrimary)
-                    .frame(width: 3)
-            }
             .overlay(
                 RoundedRectangle(cornerRadius: HFRadius.lg, style: .continuous)
                     .stroke(Color.hfOutline, lineWidth: 1)

@@ -33,12 +33,8 @@ struct EditEventSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section {
-                    HFTextField(label: "Title", text: $title)
-                        .listRowInsets(EdgeInsets())
-                        .listRowBackground(Color.clear)
-                        .padding(.horizontal, HFSpacing.s5)
-                        .padding(.vertical, HFSpacing.s2)
+                Section("Title") {
+                    TextField("Event title", text: $title)
                 }
 
                 Section {
@@ -60,20 +56,16 @@ struct EditEventSheet: View {
                     .pickerStyle(.menu)
                 }
 
-                Section {
-                    HFTextField(label: "Notes (optional)", text: $notes)
-                        .listRowInsets(EdgeInsets())
-                        .listRowBackground(Color.clear)
-                        .padding(.horizontal, HFSpacing.s5)
-                        .padding(.vertical, HFSpacing.s2)
+                Section("Notes") {
+                    TextField("Optional notes", text: $notes, axis: .vertical)
+                        .lineLimit(3...6)
                 }
 
                 Section {
                     Button(role: .destructive) { showDeleteConfirm = true } label: {
                         HStack {
                             Spacer()
-                            Text("Delete Event")
-                                .fontWeight(.semibold)
+                            Text("Delete Event").fontWeight(.semibold)
                             Spacer()
                         }
                     }
@@ -105,10 +97,7 @@ struct EditEventSheet: View {
             }
             .confirmationDialog("Delete this event?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
                 Button("Delete", role: .destructive) {
-                    Task {
-                        await onDelete()
-                        dismiss()
-                    }
+                    Task { await onDelete(); dismiss() }
                 }
                 Button("Cancel", role: .cancel) {}
             }

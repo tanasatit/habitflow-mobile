@@ -29,12 +29,8 @@ struct AddEventSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section {
-                    HFTextField(label: "Title", text: $title)
-                        .listRowInsets(EdgeInsets())
-                        .listRowBackground(Color.clear)
-                        .padding(.horizontal, HFSpacing.s5)
-                        .padding(.vertical, HFSpacing.s2)
+                Section("Title") {
+                    TextField("Event title", text: $title)
                 }
 
                 Section {
@@ -56,12 +52,9 @@ struct AddEventSheet: View {
                     .pickerStyle(.menu)
                 }
 
-                Section {
-                    HFTextField(label: "Notes (optional)", text: $notes)
-                        .listRowInsets(EdgeInsets())
-                        .listRowBackground(Color.clear)
-                        .padding(.horizontal, HFSpacing.s5)
-                        .padding(.vertical, HFSpacing.s2)
+                Section("Notes") {
+                    TextField("Optional notes", text: $notes, axis: .vertical)
+                        .lineLimit(3...6)
                 }
 
                 if let error {
