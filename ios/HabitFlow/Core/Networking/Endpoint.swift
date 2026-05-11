@@ -78,6 +78,10 @@ struct Endpoint {
         Endpoint(path: "/calendar", method: .POST, body: body, requiresAuth: true)
     }
 
+    static func updateEvent(id: String, _ body: UpdateEventRequest) -> Endpoint {
+        Endpoint(path: "/calendar/\(id)", method: .PATCH, body: body, requiresAuth: true)
+    }
+
     static func deleteEvent(id: String) -> Endpoint {
         Endpoint(path: "/calendar/\(id)", method: .DELETE, body: nil, requiresAuth: true)
     }

@@ -16,6 +16,9 @@ final class CalendarEvent: Model, @unchecked Sendable {
     @OptionalField(key: "notes")
     var notes: String?
 
+    @OptionalField(key: "category")
+    var category: String?
+
     @Field(key: "start_at")
     var startAt: Date
 
@@ -41,6 +44,7 @@ final class CalendarEvent: Model, @unchecked Sendable {
         userID: UUID,
         title: String,
         notes: String? = nil,
+        category: String? = nil,
         startAt: Date,
         endAt: Date,
         allDay: Bool = false
@@ -49,6 +53,7 @@ final class CalendarEvent: Model, @unchecked Sendable {
         self.$user.id = userID
         self.title = title
         self.notes = notes
+        self.category = category
         self.startAt = startAt
         self.endAt = endAt
         self.allDay = allDay

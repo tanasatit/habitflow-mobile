@@ -1,29 +1,33 @@
 import SwiftUI
 
-struct AddEventSheet: View {
+struct EditEventSheet: View {
     @Environment(\.dismiss) private var dismiss
-    let token: String
-    let defaultDate: Date
-    let onCreate: (CreateEventRequest) async throws -> Void
+    let event: CalendarEvent
+    let onUpdate: (UpdateEventRequest) async throws -> Void
+    let onDelete: () async -> Void
 
-    @State private var title = ""
-    @State private var notes = ""
-    @State private var category = ""
+    @State private var title: String
+    @State private var notes: String
+    @State private var category: String
     @State private var startAt: Date
     @State private var endAt: Date
-    @State private var allDay = false
+    @State private var allDay: Bool
     @State private var isLoading = false
+    @State private var showDeleteConfirm = false
     @State private var error: String?
 
     private let categories = ["work", "health", "personal", "study", "social", "other"]
 
-    init(token: String, defaultDate: Date, onCreate: @escaping (CreateEventRequest) async throws -> Void) {
-        self.token = token
-        self.defaultDate = defaultDate
-        self.onCreate = onCreate
-        let start = Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: defaultDate) ?? defaultDate
-        _startAt = State(initialValue: start)
-        _endAt   = State(initialValue: start.addingTimeInterval(3600))
+    init(event: CalendarEvent, onUpdate: @escaping (UpdateEventRequest) async throws -> Void, onDelete: @escaping () async -> Void) {
+        self.event = event
+        self.onUpdate = onUpdate
+        self.onDelete = onDelete
+        _title = State(initialValue: event.title)
+        _notes = State(initialValue: event.notes ?? "")
+        _category = State(initialValue: event.category ?? "")
+        _startAt = State(initialValue: event.startAt)
+        _endAt = State(initialValue: event.endAt)
+        _allDay = State(initialValue: event.allDay)
     }
 
     var body: some View {
@@ -64,6 +68,17 @@ struct AddEventSheet: View {
                         .padding(.vertical, HFSpacing.s2)
                 }
 
+                Section {
+                    Button(role: .destructive) { showDeleteConfirm = true } label: {
+                        HStack {
+                            Spacer()
+                            Text("Delete Event")
+                                .fontWeight(.semibold)
+                            Spacer()
+                        }
+                    }
+                }
+
                 if let error {
                     Section {
                         HFErrorBanner(message: error)
@@ -74,7 +89,7 @@ struct AddEventSheet: View {
             }
             .scrollContentBackground(.hidden)
             .background(Color.hfBackground)
-            .navigationTitle("New Event")
+            .navigationTitle("Edit Event")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -82,11 +97,20 @@ struct AddEventSheet: View {
                         .foregroundStyle(Color.hfOnSurfaceVariant)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Add") { save() }
+                    Button("Save") { save() }
                         .fontWeight(.semibold)
                         .foregroundStyle(Color.hfPrimary)
                         .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty || isLoading)
                 }
+            }
+            .confirmationDialog("Delete this event?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
+                Button("Delete", role: .destructive) {
+                    Task {
+                        await onDelete()
+                        dismiss()
+                    }
+                }
+                Button("Cancel", role: .cancel) {}
             }
         }
     }
@@ -101,7 +125,7 @@ struct AddEventSheet: View {
         Task {
             defer { isLoading = false }
             do {
-                let request = CreateEventRequest(
+                let request = UpdateEventRequest(
                     title: title.trimmingCharacters(in: .whitespaces),
                     notes: notes.isEmpty ? nil : notes,
                     category: category.isEmpty ? nil : category,
@@ -109,12 +133,12 @@ struct AddEventSheet: View {
                     endAt: allDay ? Calendar.current.date(byAdding: .day, value: 1, to: startAt)! : endAt,
                     allDay: allDay
                 )
-                try await onCreate(request)
+                try await onUpdate(request)
                 dismiss()
             } catch let e as APIError {
                 error = e.errorDescription
             } catch {
-                self.error = "Failed to create event."
+                self.error = "Failed to update event."
             }
         }
     }

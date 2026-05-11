@@ -82,10 +82,20 @@ struct AICoachService: Sendable {
                 .filter(\.$user.$id == userID)
                 .filter(\.$isActive == true)
                 .all()
-            let summary = habits.isEmpty
-                ? "No active habits found."
-                : habits.map { "\($0.name) (\($0.category ?? "general"), \($0.frequency))" }.joined(separator: "; ")
-            return (GeminiFunctionResponse(name: "get_user_habits", response: ["result": summary]), false, [])
+            if habits.isEmpty {
+                return (GeminiFunctionResponse(name: "get_user_habits", response: ["result": "No active habits found."]), false, [])
+            }
+            var lines: [String] = []
+            for habit in habits {
+                guard let habitID = habit.id else { continue }
+                let logs = try await HabitLog.query(on: req.db)
+                    .filter(\.$habit.$id == habitID)
+                    .filter(\.$user.$id == userID)
+                    .all()
+                let stats = HabitStatsService.stats(logDates: logs.map(\.completedAt))
+                lines.append("\(habit.name) (category: \(habit.category ?? "general"), streak: \(stats.currentStreak) days, completion: \(Int(stats.completionRate * 100))%)")
+            }
+            return (GeminiFunctionResponse(name: "get_user_habits", response: ["result": lines.joined(separator: "; ")]), false, [])
 
         case "write_calendar":
             guard let eventArgs = call.args.events, !eventArgs.isEmpty else {
@@ -133,21 +143,28 @@ struct AICoachService: Sendable {
     private func buildSystemPrompt(timezone: String?) -> String {
         let tz = timezone.flatMap { TimeZone(identifier: $0) } ?? TimeZone(identifier: "UTC")!
         let tzLabel = tz.identifier
+        let posix = Locale(identifier: "en_US_POSIX")
 
         let todayFormatter: DateFormatter = {
             let f = DateFormatter()
+            f.locale = posix
+            f.calendar = Calendar(identifier: .gregorian)
             f.dateFormat = "yyyy-MM-dd (EEEE)"
             f.timeZone = tz
             return f
         }()
         let dateOnlyFormatter: DateFormatter = {
             let f = DateFormatter()
+            f.locale = posix
+            f.calendar = Calendar(identifier: .gregorian)
             f.dateFormat = "yyyy-MM-dd"
             f.timeZone = tz
             return f
         }()
         let weekdayFormatter: DateFormatter = {
             let f = DateFormatter()
+            f.locale = posix
+            f.calendar = Calendar(identifier: .gregorian)
             f.dateFormat = "EEEE"
             f.timeZone = tz
             return f
@@ -165,6 +182,7 @@ struct AICoachService: Sendable {
         }
 
         return """
+        You are a personal habit coach. Always use the Gregorian calendar. Always express years as Gregorian years (e.g. 2026, never Buddhist Era 2569 or any other era).
         The user's timezone is \(tzLabel). Today is \(todayStr) \(tzLabel). Use this when creating or referencing calendar events.
         Upcoming dates: \(anchors.joined(separator: ", ")).
         Use ISO8601 UTC format for all event times (convert from \(tzLabel) to UTC), e.g. if the user says 7am in \(tzLabel), store the UTC equivalent.

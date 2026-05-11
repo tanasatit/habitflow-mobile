@@ -30,6 +30,14 @@ final class CalendarViewModel {
         events.sort { $0.startAt < $1.startAt }
     }
 
+    func updateEvent(id: String, _ request: UpdateEventRequest, token: String) async throws {
+        let updated: CalendarEvent = try await api.send(.updateEvent(id: id, request), token: token)
+        if let idx = events.firstIndex(where: { $0.id == id }) {
+            events[idx] = updated
+        }
+        events.sort { $0.startAt < $1.startAt }
+    }
+
     func deleteEvent(id: String, token: String) async {
         do {
             try await api.sendVoid(.deleteEvent(id: id), token: token)

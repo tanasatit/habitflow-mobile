@@ -76,6 +76,7 @@ struct CalendarEventController: RouteCollection {
             userID: userID,
             title: title,
             notes: body.notes,
+            category: body.category,
             startAt: body.startAt,
             endAt: body.endAt,
             allDay: body.allDay ?? false
@@ -99,6 +100,7 @@ struct CalendarEventController: RouteCollection {
             event.title = trimmed
         }
         if let notes = body.notes { event.notes = notes }
+        if let category = body.category { event.category = category }
         if let startAt = body.startAt { event.startAt = startAt }
         if let endAt = body.endAt { event.endAt = endAt }
         if let allDay = body.allDay { event.allDay = allDay }

@@ -38,6 +38,7 @@ public func configure(_ app: Application) async throws {
     app.migrations.add(CreateCalendarEvent())
     app.migrations.add(AddRevokedTokens())
     app.migrations.add(CreateAIConversation())
+    app.migrations.add(AddCategoryToCalendarEvent())
     if app.environment != .testing {
         try await app.autoMigrate()
     }

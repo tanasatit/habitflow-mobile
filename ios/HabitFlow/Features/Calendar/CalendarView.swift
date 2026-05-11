@@ -8,6 +8,7 @@ struct CalendarView: View {
     @State private var weekOffset = 0          // 0 = current week, -1 = last week, +1 = next week
     @State private var showAddEvent = false
     @State private var showMonthView = false
+    @State private var editingEvent: CalendarEvent?
 
     private var weekDays: [Date] { CalendarViewModel.weekDays(containing: referenceDate) }
     private var referenceDate: Date {
@@ -49,6 +50,14 @@ struct CalendarView: View {
         .sheet(isPresented: $showAddEvent) {
             AddEventSheet(token: auth.token ?? "", defaultDate: selectedDay) { request in
                 try await vm.createEvent(request, token: auth.token ?? "")
+            }
+            .presentationDetents([.medium, .large])
+        }
+        .sheet(item: $editingEvent) { event in
+            EditEventSheet(event: event) { request in
+                try await vm.updateEvent(id: event.id, request, token: auth.token ?? "")
+            } onDelete: {
+                await vm.deleteEvent(id: event.id, token: auth.token ?? "")
             }
             .presentationDetents([.medium, .large])
         }
@@ -221,16 +230,25 @@ struct CalendarView: View {
                         .padding(.bottom, HFSpacing.s3)
 
                     ForEach(dayEvents) { event in
-                        EventRow(event: event, timeFormatter: timeFormatter)
-                            .padding(.horizontal, HFSpacing.s5)
-                            .padding(.bottom, HFSpacing.s3)
-                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                Button(role: .destructive) {
-                                    Task { await vm.deleteEvent(id: event.id, token: auth.token ?? "") }
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
-                                }
+                        Button { editingEvent = event } label: {
+                            EventRow(event: event, timeFormatter: timeFormatter)
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.horizontal, HFSpacing.s5)
+                        .padding(.bottom, HFSpacing.s3)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                Task { await vm.deleteEvent(id: event.id, token: auth.token ?? "") }
+                            } label: {
+                                Label("Delete", systemImage: "trash")
                             }
+                        }
+                        .swipeActions(edge: .leading) {
+                            Button { editingEvent = event } label: {
+                                Label("Edit", systemImage: "pencil")
+                            }
+                            .tint(Color.hfPrimary)
+                        }
                     }
                 }
             }
@@ -424,9 +442,9 @@ struct EventRow: View {
                         .lineLimit(1)
                 }
                 HStack(spacing: HFSpacing.s1) {
-                    Image(systemName: "pencil")
+                    Image(systemName: event.category != nil ? "tag" : "pencil")
                         .font(.system(size: 9))
-                    Text("Manual")
+                    Text((event.category?.capitalized) ?? "Manual")
                         .font(Font.system(size: 10, weight: .semibold))
                 }
                 .foregroundStyle(Color.hfPrimary)

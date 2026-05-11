@@ -3,6 +3,7 @@ import Vapor
 struct CreateCalendarEventRequest: Content, Sendable {
     let title: String
     let notes: String?
+    let category: String?
     let startAt: Date
     let endAt: Date
     let allDay: Bool?
@@ -11,6 +12,7 @@ struct CreateCalendarEventRequest: Content, Sendable {
 struct UpdateCalendarEventRequest: Content, Sendable {
     let title: String?
     let notes: String?
+    let category: String?
     let startAt: Date?
     let endAt: Date?
     let allDay: Bool?
@@ -21,6 +23,7 @@ struct CalendarEventResponse: Content, Sendable {
     let userID: UUID
     let title: String
     let notes: String?
+    let category: String?
     let startAt: Date
     let endAt: Date
     let allDay: Bool
@@ -33,6 +36,7 @@ struct CalendarEventResponse: Content, Sendable {
         self.userID = event.$user.id
         self.title = event.title
         self.notes = event.notes
+        self.category = event.category
         self.startAt = event.startAt
         self.endAt = event.endAt
         self.allDay = event.allDay
