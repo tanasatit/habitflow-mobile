@@ -1,5 +1,9 @@
 .DS_Store
 
+# Xcode user-specific state
+*.xcuserstate
+xcuserdata/
+
 # Claude Code
 CLAUDE.md
 .claude/

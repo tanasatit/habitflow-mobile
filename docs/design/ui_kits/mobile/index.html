@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>HabitFlow AI · Mobile UI Kit</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400..800;1,400..800&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0..1,0" rel="stylesheet" />
+<style>
+  html, body { margin: 0; height: 100%; background: #1a1a1a; font-family: 'Be Vietnam Pro', system-ui, sans-serif; }
+  .stage { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px 20px; gap: 18px; }
+  .legend { color: #aaa; font-size: 12px; text-align: center; }
+  .legend strong { color: #fff; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800; font-style: italic; font-size: 18px; display: block; margin-bottom: 4px; letter-spacing: -0.01em; }
+  .legend strong span.a { color: #FF8243; } .legend strong span.b { color: #069494; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; align-items: center; }
+  .nav-btn { background: #2a2a2a; color: #ddd; border: 1px solid #3a3a3a; border-radius: 9999px; padding: 6px 14px; font-size: 11px; font-weight: 600; cursor: pointer; font-family: inherit; }
+  .nav-btn.active { background: #FF8243; color: #fff; border-color: #FF8243; }
+</style>
+</head>
+<body>
+  <div id="root"></div>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script type="text/babel" src="ios-frame.jsx"></script>
+  <script type="text/babel" src="Primitives.jsx"></script>
+  <script type="text/babel" src="LoginView.jsx"></script>
+  <script type="text/babel" src="TodayView.jsx"></script>
+  <script type="text/babel" src="HabitsView.jsx"></script>
+  <script type="text/babel" src="CoachView.jsx"></script>
+  <script type="text/babel" src="CalendarView.jsx"></script>
+  <script type="text/babel" src="ProfileView.jsx"></script>
+
+  <script type="text/babel">
+    const { useState } = React;
+
+    const SEED = [
+      { id: 'h1', name: 'Drink 8 glasses of water', category: 'health',       streak: 12, done: true  },
+      { id: 'h2', name: 'Morning workout',           category: 'fitness',      streak: 8,  done: true  },
+      { id: 'h3', name: 'Meditate 10 minutes',       category: 'mindfulness',  streak: 21, done: false },
+      { id: 'h4', name: 'Read 30 pages',             category: 'learning',     streak: 5,  done: false },
+      { id: 'h5', name: 'Call a friend',             category: 'social',       streak: 3,  done: false },
+    ];
+
+    function App() {
+      const [authed, setAuthed] = useState(true);
+      const [tab, setTab] = useState('today');
+      const [habits, setHabits] = useState(SEED);
+      const toggle = (id) => setHabits(hs => hs.map(h => h.id === id ? { ...h, done: !h.done } : h));
+
+      const Screen = !authed ? <LoginView onSignIn={() => setAuthed(true)} />
+        : tab === 'today'    ? <TodayView habits={habits} toggle={toggle} />
+        : tab === 'habits'   ? <HabitsView habits={habits} openCreate={() => {}} />
+        : tab === 'coach'    ? <CoachView />
+        : tab === 'calendar' ? <CalendarView />
+        :                       <ProfileView onLogout={() => setAuthed(false)} />;
+
+      return (
+        <div className="stage">
+          <window.HF.StyleInjector />
+          <div className="legend">
+            <strong><span className="a">HabitFlow</span> <span className="b">AI</span></strong>
+            Mobile UI Kit · tap below to switch screens
+          </div>
+          <div className="row">
+            {[['today','Today'],['habits','Habits'],['coach','Flow'],['calendar','Calendar'],['profile','Profile'],['login','Login']].map(([k,l]) => (
+              <button key={k} className={`nav-btn ${(k==='login'?!authed:tab===k && authed)?'active':''}`}
+                onClick={() => k==='login' ? setAuthed(false) : (setAuthed(true), setTab(k))}>{l}</button>
+            ))}
+          </div>
+          <IOSDevice width={390} height={780}>
+            {authed ? (
+              <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#FFF9F5', paddingTop: 54, paddingBottom: 28 }}>
+                <div style={{ flex: 1, minHeight: 0 }}>{Screen}</div>
+                <window.HF.TabBar tab={tab} setTab={setTab} />
+              </div>
+            ) : (
+              <div style={{ height: '100%', paddingTop: 54, paddingBottom: 28, background: '#FFF9F5' }}>{Screen}</div>
+            )}
+          </IOSDevice>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

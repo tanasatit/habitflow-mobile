@@ -35,6 +35,10 @@ public func configure(_ app: Application) async throws {
     app.migrations.add(CreateHabit())
     app.migrations.add(CreateHabitLog())
     app.migrations.add(AddUniqueHabitLogPerDay())
+    app.migrations.add(CreateCalendarEvent())
+    app.migrations.add(AddRevokedTokens())
+    app.migrations.add(CreateAIConversation())
+    app.migrations.add(AddCategoryToCalendarEvent())
     if app.environment != .testing {
         try await app.autoMigrate()
     }
@@ -59,6 +63,18 @@ public func configure(_ app: Application) async throws {
             app.logger.notice("Admin user seeded: \(adminEmail)")
         }
     }
+
+    // MARK: Content — ISO 8601 dates throughout (matches API spec and iOS client)
+    // Vapor 4.106+ defaults to ISO 8601; we set it explicitly so the contract is clear.
+    // app.content is not exposed in Vapor 4; mutate ContentConfiguration.global directly.
+    let iso8601Encoder = JSONEncoder()
+    iso8601Encoder.dateEncodingStrategy = .iso8601
+    let iso8601Decoder = JSONDecoder()
+    iso8601Decoder.dateDecodingStrategy = .iso8601
+    var contentConfig = ContentConfiguration.global
+    contentConfig.use(encoder: iso8601Encoder, for: .json)
+    contentConfig.use(decoder: iso8601Decoder, for: .json)
+    ContentConfiguration.global = contentConfig
 
     // MARK: Routes
     try routes(app)

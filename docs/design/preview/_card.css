@@ -1,0 +1,21 @@
+/* Shared styles for design system preview cards */
+@import url('../colors_and_type.css');
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  width: 100%;
+  background: var(--color-background);
+  font-family: var(--font-sans);
+  color: var(--color-on-background);
+  overflow: hidden;
+}
+body { padding: 24px; min-height: 100vh; }
+
+.row { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+.stack { display: flex; flex-direction: column; gap: 12px; }
+.spread { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.label { font-size: 11px; color: var(--color-on-surface-variant); font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: var(--color-on-surface-variant); }
+.card-tile { background: var(--color-surface); border: 1px solid var(--color-outline); border-radius: var(--radius-2xl); padding: 16px; }
+.icon { font-family: 'Material Symbols Outlined'; font-weight: normal; font-style: normal; line-height: 1; -webkit-font-feature-settings: 'liga'; font-feature-settings: 'liga'; }
+.icon-fill { font-variation-settings: 'FILL' 1; }

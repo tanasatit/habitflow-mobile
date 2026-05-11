@@ -68,6 +68,41 @@ swift test --filter AppTests/HabitControllerTests
 swift test --filter AppTests/HabitControllerTests/testCreateHabit
 ```
 
+## Upgrading a user to Premium
+
+There is no in-app payment flow — an admin manually sets the role via the API.
+
+**Step 1 — promote yourself to admin in Postgres (one-time setup):**
+```bash
+docker exec -it habitflow_postgres \
+  psql -U habitflow -d habitflow \
+  -c "UPDATE users SET role='admin' WHERE email='your@email.com';"
+```
+
+**Step 2 — get an admin token:**
+```bash
+TOKEN=$(curl -s -X POST http://localhost:8080/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"your@email.com","password":"yourpassword"}' \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['token'])")
+```
+
+**Step 3 — find the target user's ID, then upgrade:**
+```bash
+# List all users
+curl http://localhost:8080/admin/users -H "Authorization: Bearer $TOKEN"
+
+# Upgrade a user
+curl -X PATCH http://localhost:8080/admin/users/<USER_ID>/role \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"role":"premium"}'
+```
+
+Valid roles: `free` · `premium` · `admin`
+
+---
+
 ## Roadmap
 
 Seven-day plan in [PRP-001 §5](docs/prp/PRP-001-phase1-mobile-foundation.md). Day 1 (Vapor skeleton + Auth) is complete; Day 2 adds Habits + Dashboard.

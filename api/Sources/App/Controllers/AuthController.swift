@@ -60,8 +60,18 @@ struct AuthController: RouteCollection {
     // MARK: POST /auth/logout
     @Sendable
     func logout(req: Request) async throws -> HTTPStatus {
-        // Stateless JWT — clients drop the token. Endpoint exists for symmetry.
-        .noContent
+        guard let rawToken = req.headers.bearerAuthorization?.token,
+              let payload = try? await req.jwt.verify(rawToken, as: UserPayload.self) else {
+            return .noContent
+        }
+        let jtiValue = payload.jti.value
+        let alreadyRevoked = try await RevokedToken.query(on: req.db)
+            .filter(\RevokedToken.$jti, .equal, jtiValue)
+            .first()
+        guard alreadyRevoked == nil else { return .noContent }
+        let revoked = RevokedToken(jti: jtiValue, expiresAt: payload.exp.value)
+        try await revoked.save(on: req.db)
+        return .noContent
     }
 
     // MARK: GET /auth/me
@@ -84,7 +94,8 @@ struct AuthController: RouteCollection {
             sub: .init(value: id.uuidString),
             email: user.email,
             role: user.role,
-            exp: .init(value: Date().addingTimeInterval(60 * 60 * 24 * 30))
+            exp: .init(value: Date().addingTimeInterval(60 * 60 * 24 * 30)),
+            jti: .init(value: UUID().uuidString)
         )
         return try await req.jwt.sign(payload)
     }

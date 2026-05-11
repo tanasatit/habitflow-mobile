@@ -1,5 +1,11 @@
 import Vapor
 
+// MARK: - Frequency
+
+enum HabitFrequency: String, CaseIterable {
+    case daily, weekly, monthly, custom
+}
+
 // MARK: - Requests
 
 struct CreateHabitRequest: Content, Sendable {
@@ -16,6 +22,17 @@ struct UpdateHabitRequest: Content, Sendable {
     let targetTime: String?
     let description: String?
     let isActive: Bool?
+    let frequency: String?
+
+    init(name: String? = nil, category: String? = nil, targetTime: String? = nil,
+         description: String? = nil, isActive: Bool? = nil, frequency: String? = nil) {
+        self.name = name
+        self.category = category
+        self.targetTime = targetTime
+        self.description = description
+        self.isActive = isActive
+        self.frequency = frequency
+    }
 }
 
 struct LogHabitRequest: Content, Sendable {
