@@ -1,56 +1,150 @@
-# habitflow-mobile
+# HabitFlow AI
 
-Greenfield iOS rewrite of HabitFlow as a personal habit tracker. 
+A personal habit tracker with an AI planning coach. Built as a native iOS app backed by a Server-Side Swift API.
 
-**Stack:** Swift 6 + SwiftUI (iOS 17+) · Vapor (server-side Swift) · PostgreSQL + SwiftData · Gemini API
+**Stack:** Swift 6 + SwiftUI (iOS 17+) · Vapor 4 · PostgreSQL · Gemini 2.5 Flash
+
+**Team:** Thanawat Tantijaroensin · Tanasatit Ngaosupathon
+
+---
+
+## Screenshots
+
+| Today | Habits | AI Coach |
+|---|---|---|
+| ![Today](docs/screenshots/today.png) | ![Habits](docs/screenshots/habits.png) | ![Coach](docs/screenshots/coach.png) |
+| Daily habit cards with streak flame and 7-day progress dots | Bento grid of all habits — tap to edit or delete | Natural language chat; AI reads your habits and writes calendar events |
+
+| Calendar | Profile | Login |
+|---|---|---|
+| ![Calendar](docs/screenshots/calendar.png) | ![Profile](docs/screenshots/profile.png) | ![Login](docs/screenshots/login.png) |
+| Week view with swipe navigation; category-coloured event cards | Appearance toggle and secure logout | JWT-based auth with secure Keychain storage |
+
+---
 
 ## Layout
 
 ```
 habitflow-mobile/
-├── api/              # Vapor server (Postgres, JWT auth)
-├── ios/              # SwiftUI app (coming Day 3)
-└── docs/prp/         # Phase plans (see PRP-001)
+├── api/              # Vapor server (JWT auth, habits, calendar, AI coach)
+├── ios/              # SwiftUI app
+└── docs/prp/         # Phase plans
 ```
 
-The full Phase 1 plan lives at [`docs/prp/PRP-001-phase1-mobile-foundation.md`](docs/prp/PRP-001-phase1-mobile-foundation.md).
+---
 
-## Backend — running locally
+## Running locally
 
-Prereqs: Swift 6, Docker.
+**Prerequisites:** Swift 6, Docker, Xcode 16+
+
+### Backend
 
 ```bash
 cd api
-cp .env.example .env                 # then fill in JWT_SECRET (e.g. `openssl rand -hex 48`)
-docker compose up -d                 # Postgres 16 on host port 5433
+cp .env.example .env          # fill in JWT_SECRET and GEMINI_API_KEY
+docker compose up -d          # Postgres 16 on port 5433
 swift run App serve --hostname 127.0.0.1 --port 8080
 ```
 
-Migrations run automatically on boot. The Vapor server listens on `:8080`; Postgres listens on `:5433` to avoid clashing with the legacy backend on `:5432`.
+Migrations run automatically on boot.
 
-### Auth surface (Day 1)
+### iOS
 
-| Method | Path | Auth | Notes |
+Open `ios/HabitFlow.xcodeproj` in Xcode, select a simulator, and run. The app points to `http://localhost:8080` by default.
+
+---
+
+## API reference
+
+### Auth
+
+| Method | Path | Auth | Description |
 |---|---|---|---|
-| `GET`  | `/health`         | — | sanity check |
-| `POST` | `/auth/register`  | — | `{email, password, name}` → `{token, user}` |
-| `POST` | `/auth/login`     | — | `{email, password}` → `{token, user}` |
-| `POST` | `/auth/logout`    | — | `204` (JWT is stateless; client drops the token) |
-| `GET`  | `/auth/me`        | Bearer JWT | current user |
+| `POST` | `/auth/register` | — | `{email, password, name}` → `{token, user}` |
+| `POST` | `/auth/login` | — | `{email, password}` → `{token, user}` |
+| `POST` | `/auth/logout` | Bearer | Revokes token (denylist) |
+| `GET`  | `/auth/me` | Bearer | Current user |
 
-JWT is HS256, 30-day expiry, claims `sub` / `email` / `role` / `exp`. Roles: `free`, `premium`, `admin`.
+### Habits
 
-Quick smoke:
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| `GET`    | `/habits` | Bearer | List active habits (paginated) |
+| `POST`   | `/habits` | Bearer | Create habit (free limit: 5) |
+| `PATCH`  | `/habits/:id` | Bearer | Update name / category / description |
+| `DELETE` | `/habits/:id` | Bearer | Soft-delete habit |
+| `POST`   | `/habits/:id/log` | Bearer | Log today's completion |
+| `DELETE` | `/habits/:id/log` | Bearer | Remove today's log |
+| `GET`    | `/habits/:id/stats` | Bearer | Streak + completion rate + week grid |
+
+### Calendar
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| `GET`    | `/calendar` | Bearer | Events in date range `?start=&end=` |
+| `POST`   | `/calendar` | Bearer | Create event |
+| `PATCH`  | `/calendar/:id` | Bearer | Edit event (title, time, category, notes) |
+| `DELETE` | `/calendar/:id` | Bearer | Soft-delete event |
+| `POST`   | `/calendar/:id/restore` | Bearer | Restore deleted event |
+
+### AI Coach (Premium)
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| `POST` | `/ai/chat` | Bearer (premium) | Chat message; AI can call `get_user_habits`, `get_calendar_events`, `write_calendar` |
+
+### Dashboard
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| `GET` | `/dashboard` | Bearer | Today's habit completion summary |
+
+### Admin
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| `GET`   | `/admin/users` | Bearer (admin) | List all users |
+| `PATCH` | `/admin/users/:id/role` | Bearer (admin) | Set role: `free` · `premium` · `admin` |
+| `DELETE`| `/admin/users/:id` | Bearer (admin) | Delete user |
+
+---
+
+## Roles
+
+| Role | Habit limit | AI Coach | Admin panel |
+|---|---|---|---|
+| `free` | 5 | ✗ (paywall) | ✗ |
+| `premium` | Unlimited | ✓ | ✗ |
+| `admin` | Unlimited | ✓ | ✓ |
+
+---
+
+## Upgrading a user to Premium
+
+No in-app payment flow — an admin promotes users via the API.
 
 ```bash
-curl -X POST http://127.0.0.1:8080/auth/register \
+# 1. Get an admin token
+TOKEN=$(curl -s -X POST http://localhost:8080/auth/login \
   -H 'Content-Type: application/json' \
-  -d '{"email":"you@example.com","password":"correct horse battery","name":"You"}'
+  -d '{"email":"admin@habitflow.local","password":"changeme123"}' \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['token'])")
+
+# 2. List users to find the target ID
+curl http://localhost:8080/admin/users -H "Authorization: Bearer $TOKEN"
+
+# 3. Upgrade
+curl -X PATCH http://localhost:8080/admin/users/<USER_ID>/role \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"role":"premium"}'
 ```
 
-## Backend — running tests
+---
 
-Postgres must be running (`docker compose up -d`). Each integration test class migrates and reverts its own schema, so the test DB is always clean.
+## Running tests
+
+Postgres must be running (`docker compose up -d`).
 
 ```bash
 cd api
@@ -58,51 +152,10 @@ cd api
 # All tests
 swift test
 
-# Unit tests only (no DB required — pure streak/stats logic)
+# Unit tests only (streak algorithm — no DB required)
 swift test --filter AppTests/HabitStatsServiceTests
 
-# Integration tests only (requires Postgres)
+# Integration tests
 swift test --filter AppTests/HabitControllerTests
-
-# Single test method
-swift test --filter AppTests/HabitControllerTests/testCreateHabit
+swift test --filter AppTests/CalendarEventControllerTests
 ```
-
-## Upgrading a user to Premium
-
-There is no in-app payment flow — an admin manually sets the role via the API.
-
-**Step 1 — promote yourself to admin in Postgres (one-time setup):**
-```bash
-docker exec -it habitflow_postgres \
-  psql -U habitflow -d habitflow \
-  -c "UPDATE users SET role='admin' WHERE email='your@email.com';"
-```
-
-**Step 2 — get an admin token:**
-```bash
-TOKEN=$(curl -s -X POST http://localhost:8080/auth/login \
-  -H 'Content-Type: application/json' \
-  -d '{"email":"your@email.com","password":"yourpassword"}' \
-  | python3 -c "import sys,json; print(json.load(sys.stdin)['token'])")
-```
-
-**Step 3 — find the target user's ID, then upgrade:**
-```bash
-# List all users
-curl http://localhost:8080/admin/users -H "Authorization: Bearer $TOKEN"
-
-# Upgrade a user
-curl -X PATCH http://localhost:8080/admin/users/<USER_ID>/role \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '{"role":"premium"}'
-```
-
-Valid roles: `free` · `premium` · `admin`
-
----
-
-## Roadmap
-
-Seven-day plan in [PRP-001 §5](docs/prp/PRP-001-phase1-mobile-foundation.md). Day 1 (Vapor skeleton + Auth) is complete; Day 2 adds Habits + Dashboard.
