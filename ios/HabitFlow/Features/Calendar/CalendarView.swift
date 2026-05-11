@@ -85,7 +85,7 @@ struct CalendarView: View {
         HStack(alignment: .top) {
             Button { showMonthView = true } label: {
                 VStack(alignment: .leading, spacing: HFSpacing.s1) {
-                    Text(monthFormatter.string(from: selectedDay).uppercased())
+                    Text(monthFormatter.string(from: weekDays.first ?? selectedDay).uppercased())
                         .font(.hfLabelStrong)
                         .foregroundStyle(Color.hfOnSurfaceVariant)
                     HStack(spacing: HFSpacing.s1) {

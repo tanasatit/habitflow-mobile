@@ -10,6 +10,7 @@ struct EditHabitSheet: View {
     @State private var selectedCategory: HabitCategory
     @State private var description: String
     @State private var isLoading = false
+    @State private var showDeleteConfirm = false
     @State private var error: String?
 
     init(habit: HabitItem, token: String, vm: HabitsViewModel) {
@@ -47,6 +48,16 @@ struct EditHabitSheet: View {
                     }
 
                     HFPrimaryButton(title: "Save Changes", action: save, isLoading: isLoading)
+
+                    Button(role: .destructive) { showDeleteConfirm = true } label: {
+                        HStack {
+                            Spacer()
+                            Text("Delete Habit").fontWeight(.semibold)
+                            Spacer()
+                        }
+                        .padding(.vertical, HFSpacing.s3)
+                    }
+                    .foregroundStyle(Color.hfDanger)
                 }
                 .padding(HFSpacing.s5)
             }
@@ -58,6 +69,15 @@ struct EditHabitSheet: View {
                     Button("Cancel") { dismiss() }
                         .foregroundStyle(Color.hfOnSurfaceVariant)
                 }
+            }
+            .confirmationDialog("Delete this habit?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
+                Button("Delete", role: .destructive) {
+                    Task {
+                        await vm.deleteHabit(id: habit.id, token: token)
+                        dismiss()
+                    }
+                }
+                Button("Cancel", role: .cancel) {}
             }
         }
     }
