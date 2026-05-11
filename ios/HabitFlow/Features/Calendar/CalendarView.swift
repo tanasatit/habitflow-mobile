@@ -9,6 +9,7 @@ struct CalendarView: View {
     @State private var showAddEvent = false
     @State private var showMonthView = false
     @State private var editingEvent: CalendarEvent?
+    @State private var suppressTodaySelect = false
 
     private var weekDays: [Date] { CalendarViewModel.weekDays(containing: referenceDate) }
     private var referenceDate: Date {
@@ -35,13 +36,18 @@ struct CalendarView: View {
         }
         .background(Color.hfBackground)
         .task { await loadCurrentWeek() }
-        .onChange(of: weekOffset) { Task { await loadCurrentWeek() } }
+        .onChange(of: weekOffset) {
+            if weekOffset == 0 && !suppressTodaySelect { selectedDay = Date() }
+            suppressTodaySelect = false
+            Task { await loadCurrentWeek() }
+        }
         .refreshable { await loadCurrentWeek() }
         .onReceive(NotificationCenter.default.publisher(for: .calendarDidUpdate)) { _ in
             Task { await loadCurrentWeek() }
         }
         .onChange(of: navigator.calendarTargetDate) { _, date in
             guard let date else { return }
+            suppressTodaySelect = true
             let newOffset = weeksFrom(Date(), to: date)
             selectedDay = date
             weekOffset = newOffset
@@ -74,8 +80,6 @@ struct CalendarView: View {
     }
 
     private func loadCurrentWeek() async {
-        // Auto-select today when navigating to current week
-        if weekOffset == 0 { selectedDay = Date() }
         await vm.load(weekContaining: referenceDate, token: auth.token ?? "")
     }
 
